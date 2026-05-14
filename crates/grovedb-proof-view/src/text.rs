@@ -561,14 +561,22 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         return Ok(MerkNodeView::Kv { key, value });
     }
     if parser.consume_keyword("HashWithCount") {
+        // `Node::HashWithCount` is the one variant whose Display uses named
+        // field syntax: `HashWithCount(kv_hash=HASH[…], left=HASH[…],
+        // right=HASH[…], count=N)`. Consume each `name=` prefix before its
+        // value.
         parser.skip_whitespace();
         parser.expect_char('(')?;
+        consume_named_prefix(parser, "kv_hash")?;
         let kv_hash = parse_hash(parser)?;
         comma(parser)?;
+        consume_named_prefix(parser, "left")?;
         let l = parse_hash(parser)?;
         comma(parser)?;
+        consume_named_prefix(parser, "right")?;
         let r = parse_hash(parser)?;
         comma(parser)?;
+        consume_named_prefix(parser, "count")?;
         let count = parse_u64(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
@@ -1119,6 +1127,17 @@ fn parse_opaque_call(
 fn comma(parser: &mut Parser) -> Result<(), ParseError> {
     parser.skip_whitespace();
     parser.expect_char(',')?;
+    parser.skip_whitespace();
+    Ok(())
+}
+
+/// Consume `<name>=` (with surrounding whitespace tolerated). Used for the
+/// few Display formats that use named field syntax.
+fn consume_named_prefix(parser: &mut Parser, name: &str) -> Result<(), ParseError> {
+    parser.skip_whitespace();
+    parser.expect_keyword(name)?;
+    parser.skip_whitespace();
+    parser.expect_char('=')?;
     parser.skip_whitespace();
     Ok(())
 }

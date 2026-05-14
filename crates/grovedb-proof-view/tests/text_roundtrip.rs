@@ -358,6 +358,72 @@ fn parse_text_handles_book_query1_verbatim() {
 }
 
 #[test]
+fn parse_text_handles_hash_with_count_named_fields() {
+    // Regression: Node::HashWithCount uses named-field Display syntax
+    // (kv_hash=HASH[…], left=HASH[…], right=HASH[…], count=N) — a different
+    // shape from every other Node variant. Earlier parser only handled the
+    // positional form and bailed out on real AggregateCountOnRange proofs.
+    //
+    // Verbatim slice of the bench's `byColor` `color == 'color_00000500'`
+    // proof (Layer 6 of count-index-examples.md Query 3).
+    let text = r#"GroveDBProofV1 {
+  LayerProof {
+    proof: Merk(
+      0: Push(HashWithCount(kv_hash=HASH[4f8d29f51f626326fa5a3d4aa210a07eddf53121888aa5788625ae774be9bc37], left=HASH[ec92140543f4bd56112e8eaf4cb9796b1986d56b0bf721d81fc7d6a699d16a50], right=HASH[1eb29f80ffaac4878420ecfc9337e6181c9e6fc30608fc5475cf0b808f51a31d], count=255))
+      1: Push(KVDigestCount(color_00000255, HASH[2ed4d50b30e917eceacb3356eb88057e490f9d98ebf6123d25535ff502d2da2b], 511))
+      2: Parent
+      3: Push(HashWithCount(kv_hash=HASH[3b75b6239307e1a00f8596386421e623e365d4adc8451dae07cc3bcf589efc44], left=HASH[0000000000000000000000000000000000000000000000000000000000000000], right=HASH[0000000000000000000000000000000000000000000000000000000000000000], count=1))
+      4: Child)
+  }
+}"#;
+    let v = parse_text(text).expect("parse HashWithCount with named fields");
+    assert_eq!(v.layers.len(), 1);
+    let bt = v.layers[0].binary_tree.as_ref().unwrap();
+    assert_eq!(bt.nodes.len(), 3);
+    let mut hwc_count = 0;
+    let mut total_count_on_hwc = 0u64;
+    for node in &bt.nodes {
+        if let MerkNodeView::HashWithCount { count, .. } = &node.view {
+            hwc_count += 1;
+            total_count_on_hwc += count;
+        }
+    }
+    assert_eq!(hwc_count, 2);
+    // 255 + 1 = 256: confirms both counts decoded out of the named-field syntax.
+    assert_eq!(total_count_on_hwc, 256);
+}
+
+#[test]
+fn parse_text_handles_book_query3_verbatim() {
+    // The exact `color == 'color_00000500'` proof a user reported as failing
+    // — 7 layers, includes Hash / KVHash / KVValueHash / HashWithCount /
+    // KVDigestCount, NonCounted-wrapped ProvableCountTree, all in one go.
+    let text = include_str!("fixtures/query3_color_eq.txt");
+    let v = parse_text(text).expect("parse book Query 3");
+    assert_eq!(v.version, 1);
+    // Descent: root → @ → contract_id → 0x01 → widget → brand → brand_050 → color = 8 layers
+    assert_eq!(v.layers.len(), 8);
+    // Deepest layer: contains the boundary KVDigestCount entries that
+    // straddle color_00000500.
+    let deepest = v.layers.last().unwrap();
+    let bt = deepest.binary_tree.as_ref().unwrap();
+    let target_count = bt
+        .nodes
+        .iter()
+        .filter_map(|n| match &n.view {
+            MerkNodeView::KvDigestCount { key, count, .. } if key.display == "color_00000500" => {
+                Some(*count)
+            }
+            _ => None,
+        })
+        .next()
+        .expect("color_00000500 boundary present");
+    // The boundary itself proves a CountTree with count=1 (verifies the
+    // single-doc result for the byColor terminator).
+    assert_eq!(target_count, 1);
+}
+
+#[test]
 fn parse_text_handles_hex_keys() {
     let elem = grovedb::Element::Tree(None, None);
     let key = vec![0xff, 0x00, 0xab];

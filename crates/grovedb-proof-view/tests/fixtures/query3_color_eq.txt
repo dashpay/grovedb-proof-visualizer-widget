@@ -1,0 +1,134 @@
+GroveDBProofV1 {
+  LayerProof {
+    proof: Merk(
+      0: Push(Hash(HASH[bd291f29893fb6f6d6201087746ca1f23a178dd08e1346cb6c127e91ae3623b3]))
+      1: Push(KVValueHash(@, Tree(4ed22624752972af97fb71abf4067b23e6d296a61a02f35b2098819fde39d289), HASH[4a5a28cb1b40226aa35b2f0d502767df13268bdf4678627dbfde26a557acdf73]))
+      2: Parent
+      3: Push(Hash(HASH[19c924989e473a90d0848277d0b1498ccc8db3dc870cbc130e773f3d79ea5b71]))
+      4: Child)
+    lower_layers: {
+      @ => {
+        LayerProof {
+          proof: Merk(
+            0: Push(KVValueHash(0x4ed22624752972af97fb71abf4067b23e6d296a61a02f35b2098819fde39d289, Tree(01), HASH[5b90e1e952b7eef903cc9db2d9098e334a37f7e08cade52c6b2ea3bf4b56b645])))
+          lower_layers: {
+            0x4ed22624752972af97fb71abf4067b23e6d296a61a02f35b2098819fde39d289 => {
+              LayerProof {
+                proof: Merk(
+                  0: Push(Hash(HASH[49e7191075272395ed72cf03e973987ede6e4945e08574fe77d725f4ce7ecdf8]))
+                  1: Push(KVValueHash(0x01, Tree(776964676574), HASH[5d9a0fad8a3f32560f8e8950c1e84a7feabaab21b79bc72fec4482442844e2ef]))
+                  2: Parent)
+                lower_layers: {
+                  0x01 => {
+                    LayerProof {
+                      proof: Merk(
+                        0: Push(KVValueHash(widget, Tree(6272616e64), HASH[6c505f53f2ebf3de030cc2aca463d4b429aeb320a9fadb8ae68bb7903a22bb68])))
+                      lower_layers: {
+                        widget => {
+                          LayerProof {
+                            proof: Merk(
+                              0: Push(Hash(HASH[9862894b16a0792688fdcf64edcb2ceade5c8b234649bfc6cfc6426869b0e9d9]))
+                              1: Push(KVValueHash(brand, Tree(6272616e645f303633), HASH[68b697da99d6ea70a83eb41794dca7ba3938d0ba98fbfaeb3cd0c19b3b5d0ff2]))
+                              2: Parent
+                              3: Push(Hash(HASH[6c36729e93b1a316cbf60fe282eb630c0ed6e45db088e365110302b6c9caba86]))
+                              4: Child)
+                            lower_layers: {
+                              brand => {
+                                LayerProof {
+                                  proof: Merk(
+                                    0: Push(Hash(HASH[fb5eb23b3135d9c226e61f004ffb43abae104238d8a1ea7bc60e8ec6ba271596]))
+                                    1: Push(KVHash(HASH[3ed48a5e35cb7546d329487b0e1ab8a81d7c5bec358c37449e6cbd956e3bb069]))
+                                    2: Parent
+                                    3: Push(Hash(HASH[19ec5730af134e9ac980bbea92c2978212c8efe750a467ab54f073626e0ca2f5]))
+                                    4: Push(KVHash(HASH[87bc6e7e1e465b8dcdaf95db9957a455d6bd7c75976db122f33e592fe75f1e4a]))
+                                    5: Parent
+                                    6: Push(Hash(HASH[a0a354f2bb59b8169253aebabb52afcc3c59c4c60da203c8887abb679d747168]))
+                                    7: Push(KVHash(HASH[fc6b1d0237f8ff89b555e9a14480ae1c5b80d529a0f9fb5e681ea7ecd157d3da]))
+                                    8: Parent
+                                    9: Push(KVValueHash(brand_050, CountTree(636f6c6f72, 1000, flags: [0, 0, 0]), HASH[53dbd6216cccdddf16f3eb0f849aed0c0cea987a718f5b43493abf0a14e83eb9]))
+                                    10: Child
+                                    11: Push(KVHash(HASH[027ac8b1bc9788118b27c13d0b3c3bd3661ef6a89a775a6b6bf78aa7e6f8ed3d]))
+                                    12: Parent
+                                    13: Push(Hash(HASH[7a5dc3002e6cb6c92e54d554e5af85e9c2ba64ee9c5f80e6489075cc5f3f0d55]))
+                                    14: Child
+                                    15: Push(KVHash(HASH[3363630479f1abe6e003b1e1d50b5118e55ad2efb7a3f4b3b6df902bea72ac9a]))
+                                    16: Parent
+                                    17: Push(Hash(HASH[3857faef5ddb06e201f1e65cf42f15d6c9b0dc67e7f73eb182b520854e9bb648]))
+                                    18: Child
+                                    19: Child
+                                    20: Child
+                                    21: Push(KVHash(HASH[f776417ede76e6194706e483ac14ab7b3db6aa0461ec14ed5f8e5d20071363af]))
+                                    22: Parent
+                                    23: Push(Hash(HASH[b3fccba79c14fcc5e97ff6a3cd051228dc755e6de147bef690ba9681264b2b9f]))
+                                    24: Child)
+                                  lower_layers: {
+                                    brand_050 => {
+                                      LayerProof {
+                                        proof: Merk(
+                                          0: Push(Hash(HASH[2190c6fcd140792fd12be66cd631f97475b9ab3f19417a26d94798115ee46160]))
+                                          1: Push(KVValueHash(color, NonCounted(ProvableCountTree(636f6c6f725f3030303030353131, 1000, flags: [0, 0, 0])), HASH[b1cedc48940faedea8b64bff8c8113344acdb1fd8eff37c567099b167b3c5861]))
+                                          2: Parent)
+                                        lower_layers: {
+                                          color => {
+                                            LayerProof {
+                                              proof: Merk(
+                                                0: Push(HashWithCount(kv_hash=HASH[4f8d29f51f626326fa5a3d4aa210a07eddf53121888aa5788625ae774be9bc37], left=HASH[ec92140543f4bd56112e8eaf4cb9796b1986d56b0bf721d81fc7d6a699d16a50], right=HASH[1eb29f80ffaac4878420ecfc9337e6181c9e6fc30608fc5475cf0b808f51a31d], count=255))
+                                                1: Push(KVDigestCount(color_00000255, HASH[2ed4d50b30e917eceacb3356eb88057e490f9d98ebf6123d25535ff502d2da2b], 511))
+                                                2: Parent
+                                                3: Push(HashWithCount(kv_hash=HASH[80de09ce45f1c62d0532139ca67a93d88a293ce8139354e0e4751381346f64e7], left=HASH[32a8b4be78632242774668fd49f8db72d5f261d964f33ed9c0780ca99708ba20], right=HASH[af60a5ba4e39fa6326fd77dff0de304cc4cbac75c0702200a97d099f33617496], count=127))
+                                                4: Push(KVDigestCount(color_00000383, HASH[fe27bc251ea815fbd838146098daf0662fe214425a5befaec84c960dadbff89b], 255))
+                                                5: Parent
+                                                6: Push(HashWithCount(kv_hash=HASH[827791c9001bdf85512aed74a917156299ad6b1a50abe27e03939cb745000dfa], left=HASH[4b5363b3bd01883530360ef09c2b645c6f744988e24c17e432bc2c3321d41541], right=HASH[c444ec932284bb1bae3b45f3f54ed9f3922fd85aeecea01dd10341b889c41137], count=63))
+                                                7: Push(KVDigestCount(color_00000447, HASH[e7d9bb66af76a1b8600a9fb5d904f54825b61fb5e8004cdbfb4f42134455953a], 127))
+                                                8: Parent
+                                                9: Push(HashWithCount(kv_hash=HASH[11a374adf740d562dde32325c07b28949981033d310beafc1d90a3d44fb0bd6a], left=HASH[826dab51d3fd831414ae5344e837343104f0212e1c5ca57014951beba53f89d0], right=HASH[02ebfd24b8c7fd10b74bda8856344c4fd7287ce31ebdd6e9676c9a1a6e5943cc], count=31))
+                                                10: Push(KVDigestCount(color_00000479, HASH[6151f4f40176302ed6a27f77fd687bbae015a09ca80ad4af6f80e7c29e8a3595], 63))
+                                                11: Parent
+                                                12: Push(HashWithCount(kv_hash=HASH[b93259768b6500a9b757c4a90e981f0e3a8a848b275b862f16f5b242310cb65a], left=HASH[b1f724e4b2546d1d92059a72076868112b5b6187b6d227fa834d3ff3579f7b8c], right=HASH[fd1765117ce2a3f6deca713039d81726b05eecab4119e223753dee5fd989d610], count=15))
+                                                13: Push(KVDigestCount(color_00000495, HASH[034b88a8dfaf46db8b679fd72d342643d64b6937c44b06f983e5dbebd6f3b69b], 31))
+                                                14: Parent
+                                                15: Push(HashWithCount(kv_hash=HASH[bd58344e0fbbca9dee08997443550d1630adc59696701fb1f99c5a7e1fdb855a], left=HASH[22ef7d33de4e1d93a27009c5a3ae849ac8713c84dbac046dc615170a6b0e89a8], right=HASH[fbc94ef6e1255b8f0fffdb496258eb03a0b54c29d9f074830159d78a86e05621], count=3))
+                                                16: Push(KVDigestCount(color_00000499, HASH[12672ddf0e18d172679f7ebf0ba5f6976b337066e0373ffdac8c176a6a160dcc], 7))
+                                                17: Parent
+                                                18: Push(KVDigestCount(color_00000500, HASH[7f1d988845d9c82b9d1146f2188b09bf704d31647ee2a26054e69ed897de3750], 1))
+                                                19: Push(KVDigestCount(color_00000501, HASH[f0a8f993f517cee96055d69e48dfe51e70fe303424885194d3b7e71924af5df7], 3))
+                                                20: Parent
+                                                21: Push(HashWithCount(kv_hash=HASH[3b75b6239307e1a00f8596386421e623e365d4adc8451dae07cc3bcf589efc44], left=HASH[0000000000000000000000000000000000000000000000000000000000000000], right=HASH[0000000000000000000000000000000000000000000000000000000000000000], count=1))
+                                                22: Child
+                                                23: Child
+                                                24: Push(KVDigestCount(color_00000503, HASH[aba3bbc16aa5a2413fd60261c5efe4d42c97f0f4b82fcc8e74af8562cc2fdfed], 15))
+                                                25: Parent
+                                                26: Push(HashWithCount(kv_hash=HASH[64d94410c9ae982091bff1d2fe0cf3edae7af54b43f24f613ea08f465e9fa29f], left=HASH[8d2afe8b42330b1bdd677daffde7238cf93a52146e60eeec8e08b4ce095a9ad1], right=HASH[663bf105cdfa9ffd5431d8190c55a87891da0c13c74eb6a16437526c74de889c], count=7))
+                                                27: Child
+                                                28: Child
+                                                29: Child
+                                                30: Child
+                                                31: Child
+                                                32: Child
+                                                33: Push(KVDigestCount(color_00000511, HASH[fb4d7e1e5013a3c804045c72bd920ff81985ee986e87c9373c7041b78953d12e], 1000))
+                                                34: Parent
+                                                35: Push(HashWithCount(kv_hash=HASH[4ba23a437c91a135eb087602db30021bbbeeba7416d4af9317c2b1a7762ab0a4], left=HASH[cd9697f159ba87524f129190317680dd33f96cf5e8a444c9caaf264fe998746c], right=HASH[f4c9e984a836b6b3739392239b4e35c28c153dd513038a6da5294a4e327c07c0], count=488))
+                                                36: Child)
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
