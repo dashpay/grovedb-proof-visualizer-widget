@@ -26,14 +26,14 @@ export function renderLayer(layer: LayerView, totalLayers: number): RenderedLaye
   summary.innerHTML = renderSummaryHtml(layer, totalLayers);
   wrapper.appendChild(summary);
 
-  // Expand-to-fullscreen button. Lives in the summary so its always visible.
+  // Expand-to-fullscreen button. Lives in the summary so it's always visible.
   // Clicking it must not toggle the <details>, so we stopPropagation.
   const expandBtn = document.createElement("button");
   expandBtn.type = "button";
   expandBtn.className = "gpv-expand-btn";
   expandBtn.title = "Fullscreen this layer (Esc to exit)";
   expandBtn.setAttribute("aria-label", "Fullscreen this layer");
-  expandBtn.innerHTML = expandIconSvg();
+  expandBtn.innerHTML = `${expandIconSvg()}<span>Fullscreen</span>`;
   expandBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -150,10 +150,12 @@ function toggleFullscreen(wrapper: HTMLElement) {
   const root = wrapper.closest(".gpv-root") as HTMLElement | null;
   if (root) root.classList.toggle("gpv-has-fullscreen", isFullscreen);
 
-  // swap the icon
+  // swap the icon + label
   const btn = wrapper.querySelector(".gpv-expand-btn");
   if (btn) {
-    btn.innerHTML = isFullscreen ? collapseIconSvg() : expandIconSvg();
+    btn.innerHTML = isFullscreen
+      ? `${collapseIconSvg()}<span>Exit fullscreen</span>`
+      : `${expandIconSvg()}<span>Fullscreen</span>`;
     (btn as HTMLElement).title = isFullscreen
       ? "Exit fullscreen (Esc)"
       : "Fullscreen this layer (Esc to exit)";

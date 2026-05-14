@@ -72,20 +72,30 @@
 }
 
 .gpv-expand-btn {
-  margin-left: 6px;
-  padding: 2px 6px;
-  background: transparent;
-  border: 1px solid var(--gpv-border);
-  border-radius: 4px;
-  color: var(--gpv-muted);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--gpv-blue);
+  border: 1px solid var(--gpv-blue);
+  border-radius: 6px;
+  color: var(--gpv-blue-fg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  flex: 0 0 auto;
 }
 .gpv-expand-btn:hover {
-  color: var(--gpv-fg);
-  border-color: var(--gpv-blue);
+  filter: brightness(1.15);
+}
+.gpv-expand-btn svg {
+  display: block;
+}
+.gpv-expand-btn span {
+  white-space: nowrap;
 }
 .gpv-layer-summary::-webkit-details-marker { display: none; }
 .gpv-layer-summary::before {
@@ -99,7 +109,9 @@
 
 .gpv-layer-id { font-weight: 600; color: var(--gpv-fg); }
 .gpv-layer-meta { color: var(--gpv-muted); }
-.gpv-layer-descended { margin-left: auto; color: var(--gpv-muted); }
+.gpv-layer-descended { color: var(--gpv-muted); margin-left: auto; }
+/* push the fullscreen button to the far right, after the descended label */
+.gpv-expand-btn { margin-left: 8px; }
 .gpv-layer-descended code,
 .gpv-descent-chip code {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
