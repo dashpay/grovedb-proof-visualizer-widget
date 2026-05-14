@@ -6,6 +6,24 @@ A reusable widget for rendering [GroveDB](https://github.com/dashpay/grovedb) pr
 
 **[dashpay.github.io/grovedb-proof-visualizer-widget](https://dashpay.github.io/grovedb-proof-visualizer-widget/)** — paste a proof (any of the three formats), see it rendered. Bytes / text parsing happens entirely in WebAssembly in your browser; nothing leaves the page.
 
+## 🔗 Shareable links
+
+Every proof can become a permalink. Click **Share link** in the playground and the input is gzipped → base64url → packed into the URL fragment as `#f=<format>&d=<data>`. The fragment never reaches GitHub Pages servers, so the proof stays client-side. For a 40 KB raw-bytes proof the URL ends up around 30–55 KB — works in every modern browser.
+
+Anyone who opens the link gets the playground with that proof already loaded and rendered. Useful for docs, bug reports, code review threads.
+
+### Embedding from documentation (e.g. an mdBook)
+
+There's a ready-to-use prompt at [`prompts/link-from-platform-book.md`](prompts/link-from-platform-book.md) that you can either paste into an agent chat or reference from your repo's `CLAUDE.md` — it covers the URL shape, gives portable Python one-liners for the gzip + base64url pipeline, lists where proofs typically live in [dashpay/platform](https://github.com/dashpay/platform), and shows the markdown patterns for dropping a "▶ Visualize" link next to existing `<details>` blocks.
+
+A 30-second manual encode for any text proof:
+
+```bash
+python3 -c "import sys,base64,gzip; sys.stdout.write(base64.urlsafe_b64encode(gzip.compress(sys.stdin.buffer.read())).rstrip(b'=').decode())" < proof.txt
+# → use the output as the d= value
+# → final URL: https://dashpay.github.io/grovedb-proof-visualizer-widget/#f=text&d=<output>
+```
+
 GroveDB proofs are recursive `LayerProof` trees: each layer carries a Merk-tree proof (an op stream of `Push`/`Parent`/`Child` over `Hash` / `KVHash` / `KVValueHash` / `KVValueHashFeatureTypeWithChildHash` / etc.) plus a `lower_layers: BTreeMap<Key, LayerProof>` for descent into nested subtrees. The result is hard to read as raw text. This widget renders them as the layered diagram you actually want.
 
 ## Inputs
