@@ -1,6 +1,7 @@
 // Playground: paste a proof, pick a format (or auto-detect), render.
 
 import { renderProof, renderProofView, sniffFormat } from "./dist/index.js";
+import { decodeShareFragment, encodeShareUrl } from "./share.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,6 +9,7 @@ const inputEl = $("input");
 const formatSel = $("format");
 const exampleSel = $("example");
 const renderBtn = $("render");
+const shareBtn = $("share");
 const clearBtn = $("clear");
 const statusEl = $("status");
 const root = $("root");
@@ -105,5 +107,52 @@ exampleSel.addEventListener("change", async () => {
   }
 });
 
-// keyboard hint
-setStatus("tip: ⌘/Ctrl+Enter renders the current input.");
+// Share link: gzip + base64url the current input into the URL fragment, copy
+// to clipboard. The fragment is local-only — never sent to GitHub Pages.
+shareBtn.addEventListener("click", async () => {
+  const raw = inputEl.value.trim();
+  if (!raw) {
+    setStatus("nothing to share — paste a proof first", "error");
+    return;
+  }
+  const format = formatSel.value === "auto" ? sniffFormat(raw) : formatSel.value;
+  shareBtn.disabled = true;
+  shareBtn.textContent = "encoding…";
+  try {
+    const url = await encodeShareUrl(format, raw);
+    await navigator.clipboard.writeText(url);
+    const sizeKb = (url.length / 1024).toFixed(1);
+    const warning = url.length > 50_000 ? "  ⚠ long URL (some chat apps truncate)" : "";
+    setStatus(`link copied (${sizeKb} KB)${warning}`, "success");
+  } catch (e) {
+    setStatus(`share failed: ${e}`, "error");
+  } finally {
+    shareBtn.disabled = false;
+    shareBtn.textContent = "Share link";
+  }
+});
+
+// On page load, if `#f=<fmt>&d=<base64url>` is present, auto-load + render.
+async function loadFromFragment() {
+  if (!window.location.hash || window.location.hash === "#") return false;
+  try {
+    const decoded = await decodeShareFragment(window.location.hash);
+    if (!decoded) return false;
+    inputEl.value = decoded.input;
+    formatSel.value = decoded.format;
+    exampleSel.value = "";
+    setStatus(`loaded shared ${decoded.format} proof; rendering…`);
+    await renderInput();
+    return true;
+  } catch (e) {
+    setStatus(`couldn't decode shared link: ${e}`, "error");
+    return false;
+  }
+}
+
+if (await loadFromFragment()) {
+  // shared link took over; nothing else to do
+} else {
+  // keyboard hint
+  setStatus("tip: ⌘/Ctrl+Enter renders the current input.");
+}
