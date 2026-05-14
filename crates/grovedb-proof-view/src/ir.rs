@@ -109,11 +109,18 @@ pub struct MerkBinaryNode {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum MerkNodeView {
     /// Just the subtree's node hash. Opaque sibling.
-    Hash { hash: Hex32 },
+    Hash {
+        hash: Hex32,
+    },
     /// Just the kv-hash. Internal node on the path whose value isn't revealed.
-    KvHash { kv_hash: Hex32 },
+    KvHash {
+        kv_hash: Hex32,
+    },
     /// Key + value-hash, no value. Boundary key proof.
-    KvDigest { key: DisplayKey, value_hash: Hex32 },
+    KvDigest {
+        key: DisplayKey,
+        value_hash: Hex32,
+    },
     /// Key + value (value-hash implicit as `H(value)`).
     Kv {
         key: DisplayKey,
@@ -184,7 +191,7 @@ pub enum MerkNodeView {
 pub enum FeatureTypeView {
     BasicMerkNode,
     SummedMerkNode { sum: i64 },
-    BigSummedMerkNode { sum: String /* i128 as decimal */ },
+    BigSummedMerkNode { sum: String, /* i128 as decimal */ },
     CountedMerkNode { count: u64 },
     CountedSummedMerkNode { count: u64, sum: i64 },
     ProvableCountedMerkNode { count: u64 },
@@ -277,26 +284,50 @@ pub enum ElementView {
     },
     /// `NonCounted(Box<Element>)` — wraps another element. Renderer styles with
     /// a dashed border to flag the contributes-zero-to-parent-count property.
-    NonCounted { inner: Box<ElementView> },
+    NonCounted {
+        inner: Box<ElementView>,
+    },
     /// `NotSummed(Box<Element>)` — wraps a sum-bearing tree variant. Renderer
     /// styles with a dashed border to flag the contributes-zero-to-parent-sum
     /// property.
-    NotSummed { inner: Box<ElementView> },
+    NotSummed {
+        inner: Box<ElementView>,
+    },
     /// Element bytes that we couldn't decode. Surfaced rather than dropped.
-    Unknown { raw_hex: String, error: String },
+    Unknown {
+        raw_hex: String,
+        error: String,
+    },
 }
 
 /// Reference-path payload, render-friendly.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ReferenceView {
-    Absolute { path: Vec<DisplayKey> },
-    UpstreamRootHeight { n_keep: u8, path_append: Vec<DisplayKey> },
-    UpstreamRootHeightWithParentPathAddition { n_keep: u8, path_append: Vec<DisplayKey> },
-    UpstreamFromElementHeight { n_remove: u8, path_append: Vec<DisplayKey> },
-    Cousin { swap_parent: DisplayKey },
-    RemovedCousin { swap_parent: Vec<DisplayKey> },
-    Sibling { sibling_key: DisplayKey },
+    Absolute {
+        path: Vec<DisplayKey>,
+    },
+    UpstreamRootHeight {
+        n_keep: u8,
+        path_append: Vec<DisplayKey>,
+    },
+    UpstreamRootHeightWithParentPathAddition {
+        n_keep: u8,
+        path_append: Vec<DisplayKey>,
+    },
+    UpstreamFromElementHeight {
+        n_remove: u8,
+        path_append: Vec<DisplayKey>,
+    },
+    Cousin {
+        swap_parent: DisplayKey,
+    },
+    RemovedCousin {
+        swap_parent: Vec<DisplayKey>,
+    },
+    Sibling {
+        sibling_key: DisplayKey,
+    },
 }
 
 /// Edge to a deeper layer.

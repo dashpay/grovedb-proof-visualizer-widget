@@ -8,9 +8,7 @@
 use std::collections::BTreeMap;
 
 use bincode::config::standard;
-use grovedb::operations::proof::{
-    GroveDBProof, GroveDBProofV1, LayerProof, ProofBytes,
-};
+use grovedb::operations::proof::{GroveDBProof, GroveDBProofV1, LayerProof, ProofBytes};
 use grovedb_query::proofs::{encode_into, Node, Op, TreeFeatureType};
 
 fn enc_elem(elem: &grovedb::Element) -> Vec<u8> {
@@ -73,7 +71,11 @@ fn main() {
     let at_tree = grovedb::Element::Tree(Some(b"@".to_vec()), None);
     let l1_ops = vec![
         Op::Push(Node::Hash(h(0xbd))),
-        Op::Push(Node::KVValueHash(b"@".to_vec(), enc_elem(&at_tree), h(0x4a))),
+        Op::Push(Node::KVValueHash(
+            b"@".to_vec(),
+            enc_elem(&at_tree),
+            h(0x4a),
+        )),
         Op::Parent,
         Op::Push(Node::Hash(h(0x19))),
         Op::Child,

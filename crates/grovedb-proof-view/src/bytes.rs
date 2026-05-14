@@ -32,7 +32,11 @@ pub fn parse_proof(proof: &GroveDBProof) -> Result<ProofView, ParseError> {
             (1u8, root_id)
         }
     };
-    Ok(ProofView { version, root_layer_id, layers: builder.layers })
+    Ok(ProofView {
+        version,
+        root_layer_id,
+        layers: builder.layers,
+    })
 }
 
 #[derive(Default)]
@@ -79,7 +83,11 @@ fn build_v0_layer(
             .as_ref()
             .and_then(|bt| find_node_with_key(bt, key));
         let to_layer_id = build_v0_layer(builder, child, Some(display_key.clone()))?;
-        descents.push(DescentEdge { from_key: display_key, to_layer_id, from_node_id });
+        descents.push(DescentEdge {
+            from_key: display_key,
+            to_layer_id,
+            from_node_id,
+        });
     }
     builder.commit(LayerView {
         layer_id,
@@ -136,7 +144,11 @@ fn build_v1_layer(
             .as_ref()
             .and_then(|bt| find_node_with_key(bt, key));
         let to_layer_id = build_v1_layer(builder, child, Some(display_key.clone()))?;
-        descents.push(DescentEdge { from_key: display_key, to_layer_id, from_node_id });
+        descents.push(DescentEdge {
+            from_key: display_key,
+            to_layer_id,
+            from_node_id,
+        });
     }
     builder.commit(LayerView {
         layer_id,
@@ -156,7 +168,11 @@ fn opaque(backing: BackingType, bytes: &[u8]) -> OpaqueSummary {
     } else {
         format!("{}…", hex::encode(&bytes[..64]))
     };
-    OpaqueSummary { backing, byte_length: bytes.len(), raw_hex_truncated: truncated }
+    OpaqueSummary {
+        backing,
+        byte_length: bytes.len(),
+        raw_hex_truncated: truncated,
+    }
 }
 
 /// Decode a merk-proof byte buffer into:
@@ -179,8 +195,12 @@ pub(crate) fn decode_merk_ops(
 
 fn merk_op_to_view(op: &Op) -> Result<MerkOp, ParseError> {
     Ok(match op {
-        Op::Push(node) => MerkOp::Push { node: merk_node_to_view(node)? },
-        Op::PushInverted(node) => MerkOp::PushInverted { node: merk_node_to_view(node)? },
+        Op::Push(node) => MerkOp::Push {
+            node: merk_node_to_view(node)?,
+        },
+        Op::PushInverted(node) => MerkOp::PushInverted {
+            node: merk_node_to_view(node)?,
+        },
         Op::Parent => MerkOp::Parent,
         Op::Child => MerkOp::Child,
         Op::ParentInverted => MerkOp::ParentInverted,
@@ -190,8 +210,12 @@ fn merk_op_to_view(op: &Op) -> Result<MerkOp, ParseError> {
 
 pub(crate) fn merk_node_to_view(node: &Node) -> Result<MerkNodeView, ParseError> {
     Ok(match node {
-        Node::Hash(h) => MerkNodeView::Hash { hash: hex::encode(h) },
-        Node::KVHash(h) => MerkNodeView::KvHash { kv_hash: hex::encode(h) },
+        Node::Hash(h) => MerkNodeView::Hash {
+            hash: hex::encode(h),
+        },
+        Node::KVHash(h) => MerkNodeView::KvHash {
+            kv_hash: hex::encode(h),
+        },
         Node::KVDigest(k, vh) => MerkNodeView::KvDigest {
             key: DisplayKey::from_bytes(k),
             value_hash: hex::encode(vh),
@@ -221,7 +245,10 @@ pub(crate) fn merk_node_to_view(node: &Node) -> Result<MerkNodeView, ParseError>
             value: decode_element_view(v),
             count: *c,
         },
-        Node::KVHashCount(h, c) => MerkNodeView::KvHashCount { kv_hash: hex::encode(h), count: *c },
+        Node::KVHashCount(h, c) => MerkNodeView::KvHashCount {
+            kv_hash: hex::encode(h),
+            count: *c,
+        },
         Node::KVRefValueHashCount(k, v, vh, c) => MerkNodeView::KvRefValueHashCount {
             key: DisplayKey::from_bytes(k),
             value: decode_element_view(v),
@@ -364,9 +391,7 @@ fn find_node_with_key(tree: &MerkBinaryTree, key: &[u8]) -> Option<usize> {
             | MerkNodeView::KvRefValueHashCount { key: k, .. }
             | MerkNodeView::KvDigest { key: k, .. }
             | MerkNodeView::KvDigestCount { key: k, .. }
-            | MerkNodeView::KvValueHashFeatureTypeWithChildHash { key: k, .. } => {
-                k.hex == key_hex
-            }
+            | MerkNodeView::KvValueHashFeatureTypeWithChildHash { key: k, .. } => k.hex == key_hex,
             _ => false,
         };
         if matches {

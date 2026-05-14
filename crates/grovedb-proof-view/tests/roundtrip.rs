@@ -7,8 +7,8 @@ use bincode::config::standard;
 use grovedb::operations::proof::{
     GroveDBProof, GroveDBProofV1, LayerProof as GLayerProof, ProofBytes,
 };
-use grovedb_query::proofs::{encode_into, Node, Op, TreeFeatureType};
 use grovedb_proof_view::{parse_bytes, BackingType, ElementView, MerkNodeView, MerkOp};
+use grovedb_query::proofs::{encode_into, Node, Op, TreeFeatureType};
 
 /// Encode an op stream using grovedb's canonical encoder.
 fn encode_ops(ops: &[Op]) -> Vec<u8> {
@@ -35,7 +35,7 @@ fn smallest_possible_proof_round_trips() {
     //   - None for flags (1 byte: 0)
     let cfg = standard().with_big_endian().with_no_limit();
     let elem_bytes =
-        bincode::encode_to_vec(&grovedb::Element::Tree(None, None), cfg).expect("encode element");
+        bincode::encode_to_vec(grovedb::Element::Tree(None, None), cfg).expect("encode element");
     let key = b"k".to_vec();
     let value_hash = [42u8; 32];
 
@@ -84,11 +84,19 @@ fn binary_tree_attaches_left_via_parent_op() {
     // child Push, parent Push, Parent op -> parent has child as left child
     let elem_bytes = {
         let cfg = standard().with_big_endian().with_no_limit();
-        bincode::encode_to_vec(&grovedb::Element::Tree(None, None), cfg).unwrap()
+        bincode::encode_to_vec(grovedb::Element::Tree(None, None), cfg).unwrap()
     };
     let ops = vec![
-        Op::Push(Node::KVValueHash(b"a".to_vec(), elem_bytes.clone(), [1u8; 32])),
-        Op::Push(Node::KVValueHash(b"b".to_vec(), elem_bytes.clone(), [2u8; 32])),
+        Op::Push(Node::KVValueHash(
+            b"a".to_vec(),
+            elem_bytes.clone(),
+            [1u8; 32],
+        )),
+        Op::Push(Node::KVValueHash(
+            b"b".to_vec(),
+            elem_bytes.clone(),
+            [2u8; 32],
+        )),
         Op::Parent,
     ];
     let merk_proof_bytes = encode_ops(&ops);
@@ -116,7 +124,7 @@ fn binary_tree_attaches_left_via_parent_op() {
 fn lower_layers_recorded_with_descent_edges() {
     let elem_bytes = {
         let cfg = standard().with_big_endian().with_no_limit();
-        bincode::encode_to_vec(&grovedb::Element::Tree(None, None), cfg).unwrap()
+        bincode::encode_to_vec(grovedb::Element::Tree(None, None), cfg).unwrap()
     };
 
     // Root layer has key "a" -> Tree, with a lower_layer keyed "a"
@@ -203,11 +211,15 @@ fn merk_op_view_preserves_op_kinds() {
     // A 4-op proof exercising Push, Parent, Push, Child.
     let elem_bytes = {
         let cfg = standard().with_big_endian().with_no_limit();
-        bincode::encode_to_vec(&grovedb::Element::Tree(None, None), cfg).unwrap()
+        bincode::encode_to_vec(grovedb::Element::Tree(None, None), cfg).unwrap()
     };
     let ops = vec![
         Op::Push(Node::Hash([1u8; 32])),
-        Op::Push(Node::KVValueHash(b"m".to_vec(), elem_bytes.clone(), [2u8; 32])),
+        Op::Push(Node::KVValueHash(
+            b"m".to_vec(),
+            elem_bytes.clone(),
+            [2u8; 32],
+        )),
         Op::Parent,
         Op::Push(Node::Hash([3u8; 32])),
         Op::Child,

@@ -32,7 +32,11 @@ pub fn parse_text(input: &str) -> Result<ProofView, ParseError> {
     let root_layer_id = builder.parse_layer(&mut parser, None)?;
     parser.skip_whitespace();
     parser.expect_char('}')?;
-    Ok(ProofView { version, root_layer_id, layers: builder.layers })
+    Ok(ProofView {
+        version,
+        root_layer_id,
+        layers: builder.layers,
+    })
 }
 
 #[derive(Default)]
@@ -119,7 +123,9 @@ impl LayerBuilder {
                 backing = BackingType::CommitmentTree;
                 opaque_summary = Some(summary);
             } else {
-                return Err(parser.err("expected one of Merk/MMR/BulkAppendTree/DenseTree/CommitmentTree"));
+                return Err(
+                    parser.err("expected one of Merk/MMR/BulkAppendTree/DenseTree/CommitmentTree")
+                );
             }
         } else if parser.consume_keyword("merk_proof") {
             parser.skip_whitespace();
@@ -430,7 +436,12 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         let feature_type = parse_feature_type(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(MerkNodeView::KvValueHashFeatureType { key, value, value_hash, feature_type });
+        return Ok(MerkNodeView::KvValueHashFeatureType {
+            key,
+            value,
+            value_hash,
+            feature_type,
+        });
     }
     if parser.consume_keyword("KVValueHash") {
         parser.skip_whitespace();
@@ -442,7 +453,11 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         let value_hash = parse_hash(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(MerkNodeView::KvValueHash { key, value, value_hash });
+        return Ok(MerkNodeView::KvValueHash {
+            key,
+            value,
+            value_hash,
+        });
     }
     if parser.consume_keyword("KVRefValueHashCount") {
         parser.skip_whitespace();
@@ -456,7 +471,12 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         let count = parse_u64(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(MerkNodeView::KvRefValueHashCount { key, value, value_hash, count });
+        return Ok(MerkNodeView::KvRefValueHashCount {
+            key,
+            value,
+            value_hash,
+            count,
+        });
     }
     if parser.consume_keyword("KVRefValueHash") {
         parser.skip_whitespace();
@@ -468,7 +488,11 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         let value_hash = parse_hash(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(MerkNodeView::KvRefValueHash { key, value, value_hash });
+        return Ok(MerkNodeView::KvRefValueHash {
+            key,
+            value,
+            value_hash,
+        });
     }
     if parser.consume_keyword("KVDigestCount") {
         parser.skip_whitespace();
@@ -480,7 +504,11 @@ fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
         let count = parse_u64(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(MerkNodeView::KvDigestCount { key, value_hash, count });
+        return Ok(MerkNodeView::KvDigestCount {
+            key,
+            value_hash,
+            count,
+        });
     }
     if parser.consume_keyword("KVDigest") {
         parser.skip_whitespace();
@@ -682,20 +710,33 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         let (root, args) = read_paren_args(parser)?;
         let count = parse_count_arg(&args, 0, parser)?;
         let flags = extract_flags(&args);
-        return Ok(ElementView::ProvableCountTree { merk_root: root, count, flags });
+        return Ok(ElementView::ProvableCountTree {
+            merk_root: root,
+            count,
+            flags,
+        });
     }
     if parser.consume_keyword("CountSumTree") {
         let (root, args) = read_paren_args(parser)?;
         let count = parse_count_arg(&args, 0, parser)?;
         let sum = parse_sum_arg(&args, 1, parser)?;
         let flags = extract_flags(&args);
-        return Ok(ElementView::CountSumTree { merk_root: root, count, sum, flags });
+        return Ok(ElementView::CountSumTree {
+            merk_root: root,
+            count,
+            sum,
+            flags,
+        });
     }
     if parser.consume_keyword("CountTree") {
         let (root, args) = read_paren_args(parser)?;
         let count = parse_count_arg(&args, 0, parser)?;
         let flags = extract_flags(&args);
-        return Ok(ElementView::CountTree { merk_root: root, count, flags });
+        return Ok(ElementView::CountTree {
+            merk_root: root,
+            count,
+            flags,
+        });
     }
     if parser.consume_keyword("BigSumTree") {
         let (root, args) = read_paren_args(parser)?;
@@ -704,18 +745,29 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
             .trim()
             .to_string();
         let flags = extract_flags(&args);
-        return Ok(ElementView::BigSumTree { merk_root: root, sum, flags });
+        return Ok(ElementView::BigSumTree {
+            merk_root: root,
+            sum,
+            flags,
+        });
     }
     if parser.consume_keyword("SumTree") {
         let (root, args) = read_paren_args(parser)?;
         let sum = parse_sum_arg(&args, 0, parser)?;
         let flags = extract_flags(&args);
-        return Ok(ElementView::SumTree { merk_root: root, sum, flags });
+        return Ok(ElementView::SumTree {
+            merk_root: root,
+            sum,
+            flags,
+        });
     }
     if parser.consume_keyword("Tree") {
         let (root, args) = read_paren_args(parser)?;
         let flags = extract_flags(&args);
-        return Ok(ElementView::Tree { merk_root: root, flags });
+        return Ok(ElementView::Tree {
+            merk_root: root,
+            flags,
+        });
     }
     if parser.consume_keyword("ItemWithSumItem") {
         // Element::Display writes `ItemWithSumItem(<value> , <sum>, flags: ...)`
@@ -723,7 +775,10 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         // We tolerate both with-space and without-space variants.
         let body = read_paren_body(parser)?;
         let pieces = split_top_level_commas(&body);
-        let value = pieces.first().map(|s| s.trim().to_string()).unwrap_or_default();
+        let value = pieces
+            .first()
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
         let sum_str = pieces
             .get(1)
             .ok_or_else(|| parser.err("ItemWithSumItem missing sum"))?;
@@ -741,7 +796,10 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
     if parser.consume_keyword("Item") {
         let body = read_paren_body(parser)?;
         let pieces = split_top_level_commas(&body);
-        let value = pieces.first().map(|s| s.trim().to_string()).unwrap_or_default();
+        let value = pieces
+            .first()
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
         let flags = extract_flags(&pieces);
         return Ok(ElementView::Item {
             value: ascii_or_hex_to_hex(&value),
@@ -751,7 +809,9 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
     if parser.consume_keyword("SumItem") {
         let body = read_paren_body(parser)?;
         let pieces = split_top_level_commas(&body);
-        let sum_str = pieces.first().ok_or_else(|| parser.err("SumItem missing sum"))?;
+        let sum_str = pieces
+            .first()
+            .ok_or_else(|| parser.err("SumItem missing sum"))?;
         let sum: i64 = sum_str
             .trim()
             .parse()
@@ -765,7 +825,11 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         let total_count = parse_named_u64(&pieces, "count")?;
         let chunk_power = parse_named_u8(&pieces, "chunk_power")?;
         let flags = extract_flags(&pieces);
-        return Ok(ElementView::CommitmentTree { total_count, chunk_power, flags });
+        return Ok(ElementView::CommitmentTree {
+            total_count,
+            chunk_power,
+            flags,
+        });
     }
     if parser.consume_keyword("MmrTree") {
         let body = read_paren_body(parser)?;
@@ -780,7 +844,11 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         let total_count = parse_named_u64(&pieces, "total_count")?;
         let chunk_power = parse_named_u8(&pieces, "chunk_power")?;
         let flags = extract_flags(&pieces);
-        return Ok(ElementView::BulkAppendTree { total_count, chunk_power, flags });
+        return Ok(ElementView::BulkAppendTree {
+            total_count,
+            chunk_power,
+            flags,
+        });
     }
     if parser.consume_keyword("DenseAppendOnlyFixedSizeTree") {
         let body = read_paren_body(parser)?;
@@ -788,21 +856,29 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         let count = parse_named_u64(&pieces, "count")? as u16;
         let height = parse_named_u8(&pieces, "height")?;
         let flags = extract_flags(&pieces);
-        return Ok(ElementView::DenseAppendOnlyFixedSizeTree { count, height, flags });
+        return Ok(ElementView::DenseAppendOnlyFixedSizeTree {
+            count,
+            height,
+            flags,
+        });
     }
     if parser.consume_keyword("NonCounted") {
         parser.expect_char('(')?;
         let inner = parse_element(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(ElementView::NonCounted { inner: Box::new(inner) });
+        return Ok(ElementView::NonCounted {
+            inner: Box::new(inner),
+        });
     }
     if parser.consume_keyword("NotSummed") {
         parser.expect_char('(')?;
         let inner = parse_element(parser)?;
         parser.skip_whitespace();
         parser.expect_char(')')?;
-        return Ok(ElementView::NotSummed { inner: Box::new(inner) });
+        return Ok(ElementView::NotSummed {
+            inner: Box::new(inner),
+        });
     }
     if parser.consume_keyword("Reference") {
         // We don't try to round-trip Reference paths through the text format;
@@ -964,7 +1040,10 @@ fn parse_named_u64(args: &[String], name: &str) -> Result<u64, ParseError> {
             });
         }
     }
-    Err(ParseError::Text { offset: 0, message: format!("missing field `{name}`") })
+    Err(ParseError::Text {
+        offset: 0,
+        message: format!("missing field `{name}`"),
+    })
 }
 
 fn parse_named_u8(args: &[String], name: &str) -> Result<u8, ParseError> {
@@ -1008,7 +1087,7 @@ fn parse_key_bytes(parser: &mut Parser) -> Result<Vec<u8>, ParseError> {
     if start == parser.pos {
         return Err(parser.err("expected a key"));
     }
-    Ok(parser.input[start..parser.pos].as_bytes().to_vec())
+    Ok(parser.input.as_bytes()[start..parser.pos].to_vec())
 }
 
 /// Convert `hex_to_ascii` output (which can be ASCII text or `0x<hex>`) back
@@ -1022,7 +1101,10 @@ fn ascii_or_hex_to_hex(s: &str) -> HexBytes {
     }
 }
 
-fn parse_opaque_call(parser: &mut Parser, backing: BackingType) -> Result<OpaqueSummary, ParseError> {
+fn parse_opaque_call(
+    parser: &mut Parser,
+    backing: BackingType,
+) -> Result<OpaqueSummary, ParseError> {
     parser.skip_whitespace();
     parser.expect_char('(')?;
     let body = read_balanced_until(parser, ')')?;
@@ -1119,12 +1201,17 @@ impl<'a> Parser<'a> {
         } else {
             Err(self.err(&format!(
                 "expected `{ch}`, found `{}`",
-                self.peek().map(|c| c.to_string()).unwrap_or_else(|| "EOF".into())
+                self.peek()
+                    .map(|c| c.to_string())
+                    .unwrap_or_else(|| "EOF".into())
             )))
         }
     }
 
     fn err(&self, msg: &str) -> ParseError {
-        ParseError::Text { offset: self.pos, message: msg.to_string() }
+        ParseError::Text {
+            offset: self.pos,
+            message: msg.to_string(),
+        }
     }
 }

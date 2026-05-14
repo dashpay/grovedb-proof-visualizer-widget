@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 
 use bincode::config::standard;
 use grovedb::operations::proof::{
-    GroveDBProof, GroveDBProofV0, GroveDBProofV1, LayerProof as GLayerProof,
-    MerkOnlyLayerProof, ProofBytes,
+    GroveDBProof, GroveDBProofV0, GroveDBProofV1, LayerProof as GLayerProof, MerkOnlyLayerProof,
+    ProofBytes,
 };
 use grovedb_proof_view::{parse_bytes, parse_text, BackingType, ElementView, MerkNodeView};
 use grovedb_query::proofs::{encode_into, Node, Op, TreeFeatureType};
@@ -50,12 +50,10 @@ fn parse_text_handles_one_node_proof() {
     };
     let bytes = encode_v1(layer);
     let v_bytes = parse_bytes(&bytes).unwrap();
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v_text = parse_text(&text).unwrap();
 
@@ -85,18 +83,19 @@ fn parse_text_handles_count_tree_with_feature_type() {
         lower_layers: BTreeMap::new(),
     };
     let bytes = encode_v1(layer);
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v = parse_text(&text).unwrap();
     let bt = v.layers[0].binary_tree.as_ref().unwrap();
     match &bt.nodes[0].view {
         MerkNodeView::KvValueHashFeatureTypeWithChildHash {
-            value, value_hash, child_hash, ..
+            value,
+            value_hash,
+            child_hash,
+            ..
         } => {
             assert_eq!(value_hash, &hex::encode(h(0x85)));
             assert_eq!(child_hash, &hex::encode(h(0x0e)));
@@ -138,19 +137,20 @@ fn parse_text_handles_descents_and_lower_layers() {
     };
     let bytes = encode_v1(root);
     let v_bytes = parse_bytes(&bytes).unwrap();
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v_text = parse_text(&text).unwrap();
     assert_eq!(v_bytes.layers.len(), v_text.layers.len());
     assert_eq!(v_text.layers[0].descents.len(), 1);
     assert_eq!(v_text.layers[0].descents[0].from_key.display, "@");
     assert_eq!(v_text.layers[0].descents[0].to_layer_id, 1);
-    assert_eq!(v_text.layers[1].descended_via.as_ref().unwrap().display, "@");
+    assert_eq!(
+        v_text.layers[1].descended_via.as_ref().unwrap().display,
+        "@"
+    );
 }
 
 #[test]
@@ -196,12 +196,10 @@ fn parse_text_handles_kvhash_and_hash_nodes() {
         lower_layers: BTreeMap::new(),
     };
     let bytes = encode_v1(layer);
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v = parse_text(&text).unwrap();
     let bt = v.layers[0].binary_tree.as_ref().unwrap();
@@ -222,17 +220,19 @@ fn parse_text_handles_provable_count_tree_features() {
         lower_layers: BTreeMap::new(),
     };
     let bytes = encode_v1(layer);
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v = parse_text(&text).unwrap();
     let bt = v.layers[0].binary_tree.as_ref().unwrap();
     match &bt.nodes[0].view {
-        MerkNodeView::KvValueHashFeatureType { value, feature_type, .. } => {
+        MerkNodeView::KvValueHashFeatureType {
+            value,
+            feature_type,
+            ..
+        } => {
             match value {
                 ElementView::ProvableCountTree { count, .. } => assert_eq!(*count, 42),
                 other => panic!("unexpected value {other:?}"),
@@ -261,12 +261,10 @@ fn parse_text_handles_kvcount_and_kvhashcount() {
         lower_layers: BTreeMap::new(),
     };
     let bytes = encode_v1(layer);
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v = parse_text(&text).unwrap();
     let bt = v.layers[0].binary_tree.as_ref().unwrap();
@@ -363,18 +361,20 @@ fn parse_text_handles_book_query1_verbatim() {
 fn parse_text_handles_hex_keys() {
     let elem = grovedb::Element::Tree(None, None);
     let key = vec![0xff, 0x00, 0xab];
-    let ops = vec![Op::Push(Node::KVValueHash(key.clone(), enc_elem(&elem), h(0x99)))];
+    let ops = vec![Op::Push(Node::KVValueHash(
+        key.clone(),
+        enc_elem(&elem),
+        h(0x99),
+    ))];
     let layer = GLayerProof {
         merk_proof: ProofBytes::Merk(enc_ops(&ops)),
         lower_layers: BTreeMap::new(),
     };
     let bytes = encode_v1(layer);
-    let proof: GroveDBProof = bincode::decode_from_slice(
-        &bytes,
-        standard().with_big_endian().with_no_limit(),
-    )
-    .unwrap()
-    .0;
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
     let text = format!("{}", proof);
     let v = parse_text(&text).unwrap();
     let bt = v.layers[0].binary_tree.as_ref().unwrap();

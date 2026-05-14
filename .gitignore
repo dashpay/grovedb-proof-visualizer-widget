@@ -2,6 +2,7 @@ target/
 node_modules/
 dist/
 pkg/
+site-build/
 .DS_Store
 *.log
 yarn-error.log

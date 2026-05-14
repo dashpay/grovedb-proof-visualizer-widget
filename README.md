@@ -2,6 +2,10 @@
 
 A reusable widget for rendering [GroveDB](https://github.com/dashpay/grovedb) proofs in browsers and in [mdBook](https://github.com/rust-lang/mdBook), the way [mermaid](https://mermaid.js.org) renders flowcharts.
 
+## 🌐 Live playground
+
+**[dashpay.github.io/grovedb-proof-visualizer-widget](https://dashpay.github.io/grovedb-proof-visualizer-widget/)** — paste a proof (any of the three formats), see it rendered. Bytes / text parsing happens entirely in WebAssembly in your browser; nothing leaves the page.
+
 GroveDB proofs are recursive `LayerProof` trees: each layer carries a Merk-tree proof (an op stream of `Push`/`Parent`/`Child` over `Hash` / `KVHash` / `KVValueHash` / `KVValueHashFeatureTypeWithChildHash` / etc.) plus a `lower_layers: BTreeMap<Key, LayerProof>` for descent into nested subtrees. The result is hard to read as raw text. This widget renders them as the layered diagram you actually want.
 
 ## Inputs
@@ -40,6 +44,16 @@ yarn install && yarn build
 python3 -m http.server --directory . 8080
 # open http://localhost:8080/demo/
 ```
+
+## Build the playground locally
+
+```bash
+./scripts/build-site.sh
+python3 -m http.server --directory site-build 8080
+# open http://localhost:8080/
+```
+
+The same script runs in CI ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)) on every push to `master`, deploying the result to GitHub Pages.
 
 ## Using it on a web page
 

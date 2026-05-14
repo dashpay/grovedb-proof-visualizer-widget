@@ -1,6 +1,6 @@
 //! Decode element bytes (the `value` slot of a merk-tree node) into [`ElementView`].
 
-use grovedb_element::{Element, reference_path::ReferencePathType};
+use grovedb_element::{reference_path::ReferencePathType, Element};
 use grovedb_version::version::GroveVersion;
 
 use crate::ir::{DisplayKey, ElementView, HexBytes, ReferenceView};
@@ -26,7 +26,7 @@ fn element_to_view(elem: &Element) -> ElementView {
         },
         Element::Reference(rp, max_hop, flags) => ElementView::Reference {
             reference: reference_to_view(rp),
-            max_hop: max_hop.map(|h| h as u8),
+            max_hop: *max_hop,
             flags: flags_to_hex(flags),
         },
         Element::Tree(merk_root, flags) => ElementView::Tree {
@@ -107,7 +107,7 @@ fn element_to_view(elem: &Element) -> ElementView {
 }
 
 fn flags_to_hex(flags: &Option<Vec<u8>>) -> Option<HexBytes> {
-    flags.as_ref().map(|v| hex::encode(v))
+    flags.as_ref().map(hex::encode)
 }
 
 fn reference_to_view(rp: &ReferencePathType) -> ReferenceView {
@@ -124,12 +124,13 @@ fn reference_to_view(rp: &ReferencePathType) -> ReferenceView {
                 path_append: keys(path_append),
             }
         }
-        ReferencePathType::UpstreamRootHeightWithParentPathAdditionReference(n_keep, path_append) => {
-            ReferenceView::UpstreamRootHeightWithParentPathAddition {
-                n_keep: *n_keep,
-                path_append: keys(path_append),
-            }
-        }
+        ReferencePathType::UpstreamRootHeightWithParentPathAdditionReference(
+            n_keep,
+            path_append,
+        ) => ReferenceView::UpstreamRootHeightWithParentPathAddition {
+            n_keep: *n_keep,
+            path_append: keys(path_append),
+        },
         ReferencePathType::UpstreamFromElementHeightReference(n_remove, path_append) => {
             ReferenceView::UpstreamFromElementHeight {
                 n_remove: *n_remove,

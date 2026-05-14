@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GroveDB Proof Visualizer</title>
+    <meta
+      name="description"
+      content="Paste a GroveDB proof (raw hex bytes, the Display text dump, or the proof-view JSON IR) and see the layered Merk-tree structure rendered."
+    />
+    <link rel="stylesheet" href="dist/style.css" />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header class="hdr">
+      <h1>GroveDB Proof Visualizer</h1>
+      <span class="subtitle">
+        Paste a proof — raw hex bytes, the
+        <code>GroveDBProof::Display</code> text dump, or our JSON IR — and see
+        the layered Merk-tree structure.
+      </span>
+      <a class="repo-link" href="https://github.com/dashpay/grovedb-proof-visualizer-widget" target="_blank" rel="noopener">
+        github
+      </a>
+    </header>
+
+    <main class="layout">
+      <section class="input-pane">
+        <div class="input-controls">
+          <label>
+            Format
+            <select id="format">
+              <option value="auto">auto-detect</option>
+              <option value="json">JSON IR</option>
+              <option value="text">Display text</option>
+              <option value="bytes">raw hex bytes</option>
+            </select>
+          </label>
+          <label>
+            Example
+            <select id="example">
+              <option value="">(none — paste your own)</option>
+              <option value="examples/query1_count.json">Query 1 — JSON IR</option>
+              <option value="examples/query1_count.txt">Query 1 — Display text</option>
+              <option value="examples/query1_count.hex">Query 1 — raw hex bytes</option>
+            </select>
+          </label>
+          <button id="render">Render →</button>
+          <button id="clear" class="ghost">Clear</button>
+        </div>
+        <textarea
+          id="input"
+          spellcheck="false"
+          placeholder="Paste a GroveDB proof here. Hint: try one of the examples above."
+        ></textarea>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section class="output-pane">
+        <div id="root"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>
+        Renderer: <code>@dashpay/grovedb-proof-visualizer</code>.
+        Bytes / text parsers run in WebAssembly — nothing leaves the page.
+      </span>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
