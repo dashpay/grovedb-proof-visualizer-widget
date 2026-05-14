@@ -11,27 +11,77 @@ Three input formats, one rendered widget:
 | Format         | How it gets there                                     |
 |----------------|--------------------------------------------------------|
 | **Raw bytes**  | hex/base64 string → WASM bincode decoder → IR          |
-| **Display text** (`GroveDBProofV1 { ... }`) | recursive-descent parser → IR             |
-| **Proof IR JSON** | direct deserialization, validated against schema    |
+| **Display text** (`GroveDBProofV1 { ... }`) | recursive-descent parser → IR (phase 4 — in progress) |
+| **Proof IR JSON** | direct deserialization                              |
 
 ## Crates / packages
 
 | Path                                  | What it does                                                                  |
 |---------------------------------------|-------------------------------------------------------------------------------|
-| `crates/grovedb-proof-view`           | Rust core: IR (`ProofView`), bytes parser, text parser, JSON Schema export.    |
+| `crates/grovedb-proof-view`           | Rust core: IR (`ProofView`), bytes parser, Display-text parser (WIP), JSON Schema export. |
 | `crates/grovedb-proof-view-wasm`      | `wasm-bindgen` wrapper exposing all three input parsers to JS.                |
-| `crates/mdbook-grovedb-proof`         | mdBook preprocessor: ` ```grovedb-proof ` fenced blocks → embedded widget HTML. |
-| `packages/grovedb-proof-visualizer`   | TypeScript renderer + `<grovedb-proof>` Web Component + React wrapper.        |
+| `crates/mdbook-grovedb-proof`         | mdBook preprocessor: ` ```grovedb-proof ` fenced blocks → embedded widget HTML (deferred). |
+| `packages/grovedb-proof-visualizer`   | TypeScript renderer + `<grovedb-proof>` Web Component.                        |
 
-## Development
+## Quick start
 
 ```bash
-# Rust core + tests
+# 1. Run the Rust tests
 cargo test --workspace
 
-# Build WASM
-cd crates/grovedb-proof-view-wasm && wasm-pack build --target web
+# 2. Build the WASM bytes-parser (optional — only needed for `format: "bytes"`)
+./scripts/build-wasm.sh
 
-# TS renderer
-cd packages/grovedb-proof-visualizer && yarn install && yarn build
+# 3. Build the TS renderer
+cd packages/grovedb-proof-visualizer
+yarn install && yarn build
+
+# 4. Demo
+python3 -m http.server --directory . 8080
+# open http://localhost:8080/demo/
 ```
+
+## Using it on a web page
+
+```html
+<link rel="stylesheet" href="node_modules/@dashpay/grovedb-proof-visualizer/dist/style.css" />
+<grovedb-proof format="json" src="my-proof.json"></grovedb-proof>
+<script type="module">
+  import "@dashpay/grovedb-proof-visualizer/component";
+</script>
+```
+
+For raw-bytes input, register the WASM adapter once at startup:
+
+```js
+import { setAdapters } from "@dashpay/grovedb-proof-visualizer/component";
+import { loadWasmAdapters } from "@dashpay/grovedb-proof-visualizer/wasm";
+
+setAdapters(await loadWasmAdapters());
+```
+
+## IR / JSON Schema
+
+The intermediate representation is documented in
+[`crates/grovedb-proof-view/src/ir.rs`](crates/grovedb-proof-view/src/ir.rs)
+and exported as a JSON Schema at
+[`packages/grovedb-proof-visualizer/proof-view.schema.json`](packages/grovedb-proof-visualizer/proof-view.schema.json).
+
+To regenerate the schema:
+
+```bash
+cargo run -p grovedb-proof-view --example dump_schema \
+  > packages/grovedb-proof-visualizer/proof-view.schema.json
+```
+
+To dump a sample IR JSON for any hex-encoded GroveDB proof:
+
+```bash
+cargo run -p grovedb-proof-view --example dump_proof -- <hex>
+```
+
+## Pin
+
+GroveDB is pinned to `a917d92d2477672eed73c4c08e53e93449a6a094` (matches
+[dash-platform v3.1-dev's `Cargo.lock`](https://github.com/dashpay/platform/blob/v3.1-dev/Cargo.lock)).
+Bump in `Cargo.toml` `[workspace.dependencies]` to upgrade.

@@ -21,6 +21,7 @@
         display: flex;
         gap: 8px;
         align-items: center;
+        flex-wrap: wrap;
       }
       button {
         padding: 4px 10px;
@@ -32,30 +33,56 @@
         font: inherit;
       }
       button:hover { border-color: #58a6ff; }
+      button:disabled { opacity: 0.5; cursor: progress; }
+      .status { color: #6e7681; font-size: 12px; }
     </style>
   </head>
   <body>
-    <h1>grovedb-proof-visualizer — phase 2 fixture demo</h1>
+    <h1>grovedb-proof-visualizer demo</h1>
 
     <div class="controls">
+      <button id="load-json">Load (JSON IR)</button>
+      <button id="load-bytes">Load (raw hex bytes via WASM)</button>
       <button id="toggle-theme">Toggle theme</button>
-      <button id="toggle-collapsed">Collapse / expand all layers</button>
-      <span style="color: #6e7681">— Fixture: <code>query1_count.json</code> (5-layer synth proof)</span>
+      <button id="toggle-collapsed">Collapse / expand all</button>
+      <span id="status" class="status">choose an input above…</span>
     </div>
 
     <div id="root" style="max-width: 1100px"></div>
 
     <script type="module">
-      import { renderProof } from "../dist/index.js";
+      import { renderProof, renderProofView } from "../dist/index.js";
 
       const host = document.getElementById("root");
-      const handle = await renderProof(
-        host,
-        { format: "json", data: await fetch("query1_count.json").then((r) => r.text()) },
-        { theme: "auto" },
-      );
-
+      const status = document.getElementById("status");
       let isLight = false;
+      let collapsed = false;
+      let wasmAdapters = null;
+
+      const loadWasm = async () => {
+        if (wasmAdapters) return wasmAdapters;
+        status.textContent = "loading WASM (~180 KB)…";
+        const { loadWasmAdapters } = await import("../dist/wasm.js");
+        wasmAdapters = await loadWasmAdapters();
+        return wasmAdapters;
+      };
+
+      document.getElementById("load-json").addEventListener("click", async () => {
+        status.textContent = "fetching JSON…";
+        const view = await fetch("query1_count.json").then((r) => r.json());
+        renderProofView(host, view);
+        status.textContent = `rendered ${view.layers.length} layers from JSON IR`;
+      });
+
+      document.getElementById("load-bytes").addEventListener("click", async () => {
+        const adapters = await loadWasm();
+        status.textContent = "fetching hex blob…";
+        const hex = (await fetch("query1_count.hex").then((r) => r.text())).trim();
+        status.textContent = `decoding ${hex.length / 2} bytes via WASM…`;
+        await renderProof(host, { format: "bytes", data: hex }, { adapters });
+        status.textContent = `rendered from raw bytes (${hex.length / 2} B → IR via WASM)`;
+      });
+
       document.getElementById("toggle-theme").addEventListener("click", () => {
         isLight = !isLight;
         host.dataset.gpvTheme = isLight ? "light" : "navy";
@@ -63,13 +90,15 @@
         document.body.style.color = isLight ? "#1f2328" : "#c9d1d9";
       });
 
-      let collapsed = false;
       document.getElementById("toggle-collapsed").addEventListener("click", () => {
         collapsed = !collapsed;
         for (const d of host.querySelectorAll("details.gpv-layer")) {
           d.open = !collapsed;
         }
       });
+
+      // Auto-load JSON on page load.
+      document.getElementById("load-json").click();
     </script>
   </body>
 </html>

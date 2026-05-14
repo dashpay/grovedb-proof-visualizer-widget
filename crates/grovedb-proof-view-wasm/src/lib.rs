@@ -29,7 +29,6 @@ pub fn parse_bytes_raw(bytes: &[u8]) -> Result<JsValue, JsValue> {
 }
 
 /// Parse a `GroveDBProof::Display` text dump into a `ProofView` JSON object.
-#[cfg(feature = "text-parser")]
 #[wasm_bindgen(js_name = parseText)]
 pub fn parse_text(text: &str) -> Result<JsValue, JsValue> {
     let view = grovedb_proof_view::parse_text(text)

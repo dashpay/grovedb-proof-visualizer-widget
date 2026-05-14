@@ -17,6 +17,15 @@ const shared = {
 const build = async () => {
   await esbuild.build({ ...shared, entryPoints: ["src/index.ts"], outfile: "dist/index.js" });
   await esbuild.build({ ...shared, entryPoints: ["src/component.ts"], outfile: "dist/component.js" });
+  // wasm.ts: keep the dynamic import to ../wasm/grovedb_proof_view_wasm.js
+  // EXTERNAL so the bundler doesn't try to resolve the wasm-bindgen glue at
+  // build-time. End users (or downstream bundlers) resolve it themselves.
+  await esbuild.build({
+    ...shared,
+    entryPoints: ["src/wasm.ts"],
+    outfile: "dist/wasm.js",
+    external: ["../wasm/grovedb_proof_view_wasm.js"],
+  });
   // Standalone IIFE bundle for plain-script-tag use:
   // <script src="grovedb-proof-visualizer.global.js"></script>
   await esbuild.build({

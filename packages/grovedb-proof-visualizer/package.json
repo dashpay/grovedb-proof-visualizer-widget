@@ -16,11 +16,17 @@
       "types": "./dist/component.d.ts",
       "import": "./dist/component.js"
     },
+    "./wasm": {
+      "types": "./dist/wasm.d.ts",
+      "import": "./dist/wasm.js"
+    },
+    "./wasm/*": "./wasm/*",
     "./style.css": "./dist/style.css"
   },
   "files": [
     "dist",
     "src",
+    "wasm",
     "proof-view.schema.json",
     "README.md"
   ],
