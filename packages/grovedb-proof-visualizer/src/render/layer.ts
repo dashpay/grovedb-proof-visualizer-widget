@@ -1,6 +1,6 @@
 // Render one LayerView as a `<details>` block with an SVG inside.
 
-import type { LayerView } from "../types.js";
+import type { LayerView, MerkBinaryNode } from "../types.js";
 import { keyLabel } from "./format.js";
 import { layoutMerkTree, type MerkLayout } from "./merk-tree.js";
 
@@ -15,7 +15,16 @@ export interface RenderedLayer {
   svgElement: SVGSVGElement;
 }
 
-export function renderLayer(layer: LayerView, totalLayers: number): RenderedLayer {
+export interface RenderLayerOptions {
+  /** Called when the user clicks any node in this layer's binary tree. */
+  onNodeClick?: (layer: LayerView, node: MerkBinaryNode) => void;
+}
+
+export function renderLayer(
+  layer: LayerView,
+  totalLayers: number,
+  options: RenderLayerOptions = {},
+): RenderedLayer {
   const wrapper = document.createElement("details");
   wrapper.className = "gpv-layer";
   wrapper.open = true;
@@ -52,6 +61,27 @@ export function renderLayer(layer: LayerView, totalLayers: number): RenderedLaye
     layout = layoutMerkTree(layer.binary_tree);
     svgElement = makeSvg(layout.width, layout.height, layout.svg);
     body.appendChild(svgElement);
+
+    // Wire click → detail panel. Event delegation keeps things cheap for trees
+    // with many nodes; the SVG markup tags each <g.gpv-node> with data-node-id.
+    if (options.onNodeClick) {
+      const tree = layer.binary_tree;
+      svgElement.addEventListener("click", (e) => {
+        const target = (e.target as Element | null)?.closest?.(
+          "[data-node-id]",
+        ) as Element | null;
+        if (!target) return;
+        const id = Number(target.getAttribute("data-node-id"));
+        const node = tree.nodes[id];
+        if (!node) return;
+        e.stopPropagation();
+        options.onNodeClick!(layer, node);
+      });
+      // Make all nodes look clickable.
+      svgElement.querySelectorAll<SVGElement>("[data-node-id]").forEach((el) => {
+        el.style.cursor = "pointer";
+      });
+    }
   } else if (layer.opaque_summary) {
     const blob = document.createElement("div");
     blob.className = "gpv-opaque";

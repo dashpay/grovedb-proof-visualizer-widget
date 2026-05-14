@@ -36,6 +36,9 @@
     "demo": "python3 -m http.server --directory demo 8080",
     "lint": "tsc --noEmit"
   },
+  "dependencies": {
+    "@noble/hashes": "^1.7.0"
+  },
   "devDependencies": {
     "esbuild": "^0.25.0",
     "typescript": "^5.7.0"
