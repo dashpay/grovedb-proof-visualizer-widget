@@ -1,0 +1,427 @@
+{
+  "version": 1,
+  "root_layer_id": 0,
+  "layers": [
+    {
+      "layer_id": 0,
+      "backing": "merk",
+      "descended_via": null,
+      "ops": [
+        {
+          "op": "push",
+          "node": {
+            "kind": "hash",
+            "hash": "bdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdc"
+          }
+        },
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_value_hash",
+            "key": {
+              "display": "@",
+              "hex": "40",
+              "is_ascii": true
+            },
+            "value": {
+              "kind": "tree",
+              "merk_root": "40",
+              "flags": null
+            },
+            "value_hash": "4a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60616263646566676869"
+          }
+        },
+        {
+          "op": "parent"
+        },
+        {
+          "op": "push",
+          "node": {
+            "kind": "hash",
+            "hash": "191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738"
+          }
+        },
+        {
+          "op": "child"
+        }
+      ],
+      "binary_tree": {
+        "root": 1,
+        "nodes": [
+          {
+            "id": 0,
+            "view": {
+              "kind": "hash",
+              "hash": "bdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdc"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          },
+          {
+            "id": 1,
+            "view": {
+              "kind": "kv_value_hash",
+              "key": {
+                "display": "@",
+                "hex": "40",
+                "is_ascii": true
+              },
+              "value": {
+                "kind": "tree",
+                "merk_root": "40",
+                "flags": null
+              },
+              "value_hash": "4a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60616263646566676869"
+            },
+            "left": 0,
+            "right": 2,
+            "on_path": true
+          },
+          {
+            "id": 2,
+            "view": {
+              "kind": "hash",
+              "hash": "191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          }
+        ]
+      },
+      "opaque_summary": null,
+      "descents": [
+        {
+          "from_key": {
+            "display": "@",
+            "hex": "40",
+            "is_ascii": true
+          },
+          "to_layer_id": 1,
+          "from_node_id": 1
+        }
+      ]
+    },
+    {
+      "layer_id": 1,
+      "backing": "merk",
+      "descended_via": {
+        "display": "@",
+        "hex": "40",
+        "is_ascii": true
+      },
+      "ops": [
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_value_hash",
+            "key": {
+              "display": "0x4ed22624",
+              "hex": "4ed22624",
+              "is_ascii": false
+            },
+            "value": {
+              "kind": "tree",
+              "merk_root": "4ed22624",
+              "flags": null
+            },
+            "value_hash": "5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a"
+          }
+        }
+      ],
+      "binary_tree": {
+        "root": 0,
+        "nodes": [
+          {
+            "id": 0,
+            "view": {
+              "kind": "kv_value_hash",
+              "key": {
+                "display": "0x4ed22624",
+                "hex": "4ed22624",
+                "is_ascii": false
+              },
+              "value": {
+                "kind": "tree",
+                "merk_root": "4ed22624",
+                "flags": null
+              },
+              "value_hash": "5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          }
+        ]
+      },
+      "opaque_summary": null,
+      "descents": [
+        {
+          "from_key": {
+            "display": "0x4ed22624",
+            "hex": "4ed22624",
+            "is_ascii": false
+          },
+          "to_layer_id": 2,
+          "from_node_id": 0
+        }
+      ]
+    },
+    {
+      "layer_id": 2,
+      "backing": "merk",
+      "descended_via": {
+        "display": "0x4ed22624",
+        "hex": "4ed22624",
+        "is_ascii": false
+      },
+      "ops": [
+        {
+          "op": "push",
+          "node": {
+            "kind": "hash",
+            "hash": "494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768"
+          }
+        },
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_value_hash",
+            "key": {
+              "display": "0x01",
+              "hex": "01",
+              "is_ascii": false
+            },
+            "value": {
+              "kind": "tree",
+              "merk_root": "01",
+              "flags": null
+            },
+            "value_hash": "5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c"
+          }
+        },
+        {
+          "op": "parent"
+        }
+      ],
+      "binary_tree": {
+        "root": 1,
+        "nodes": [
+          {
+            "id": 0,
+            "view": {
+              "kind": "hash",
+              "hash": "494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          },
+          {
+            "id": 1,
+            "view": {
+              "kind": "kv_value_hash",
+              "key": {
+                "display": "0x01",
+                "hex": "01",
+                "is_ascii": false
+              },
+              "value": {
+                "kind": "tree",
+                "merk_root": "01",
+                "flags": null
+              },
+              "value_hash": "5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c"
+            },
+            "left": 0,
+            "right": null,
+            "on_path": true
+          }
+        ]
+      },
+      "opaque_summary": null,
+      "descents": [
+        {
+          "from_key": {
+            "display": "0x01",
+            "hex": "01",
+            "is_ascii": false
+          },
+          "to_layer_id": 3,
+          "from_node_id": 1
+        }
+      ]
+    },
+    {
+      "layer_id": 3,
+      "backing": "merk",
+      "descended_via": {
+        "display": "0x01",
+        "hex": "01",
+        "is_ascii": false
+      },
+      "ops": [
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_value_hash",
+            "key": {
+              "display": "widget",
+              "hex": "776964676574",
+              "is_ascii": true
+            },
+            "value": {
+              "kind": "tree",
+              "merk_root": "776964676574",
+              "flags": null
+            },
+            "value_hash": "6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b"
+          }
+        }
+      ],
+      "binary_tree": {
+        "root": 0,
+        "nodes": [
+          {
+            "id": 0,
+            "view": {
+              "kind": "kv_value_hash",
+              "key": {
+                "display": "widget",
+                "hex": "776964676574",
+                "is_ascii": true
+              },
+              "value": {
+                "kind": "tree",
+                "merk_root": "776964676574",
+                "flags": null
+              },
+              "value_hash": "6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          }
+        ]
+      },
+      "opaque_summary": null,
+      "descents": [
+        {
+          "from_key": {
+            "display": "widget",
+            "hex": "776964676574",
+            "is_ascii": true
+          },
+          "to_layer_id": 4,
+          "from_node_id": 0
+        }
+      ]
+    },
+    {
+      "layer_id": 4,
+      "backing": "merk",
+      "descended_via": {
+        "display": "widget",
+        "hex": "776964676574",
+        "is_ascii": true
+      },
+      "ops": [
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_value_hash_feature_type_with_child_hash",
+            "key": {
+              "display": "0x00",
+              "hex": "00",
+              "is_ascii": false
+            },
+            "value": {
+              "kind": "count_tree",
+              "merk_root": null,
+              "count": 100000,
+              "flags": null
+            },
+            "value_hash": "85868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4",
+            "feature_type": {
+              "kind": "basic_merk_node"
+            },
+            "child_hash": "0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d"
+          }
+        },
+        {
+          "op": "push",
+          "node": {
+            "kind": "kv_hash",
+            "kv_hash": "a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1"
+          }
+        },
+        {
+          "op": "parent"
+        },
+        {
+          "op": "push",
+          "node": {
+            "kind": "hash",
+            "hash": "6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b"
+          }
+        },
+        {
+          "op": "child"
+        }
+      ],
+      "binary_tree": {
+        "root": 1,
+        "nodes": [
+          {
+            "id": 0,
+            "view": {
+              "kind": "kv_value_hash_feature_type_with_child_hash",
+              "key": {
+                "display": "0x00",
+                "hex": "00",
+                "is_ascii": false
+              },
+              "value": {
+                "kind": "count_tree",
+                "merk_root": null,
+                "count": 100000,
+                "flags": null
+              },
+              "value_hash": "85868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4",
+              "feature_type": {
+                "kind": "basic_merk_node"
+              },
+              "child_hash": "0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          },
+          {
+            "id": 1,
+            "view": {
+              "kind": "kv_hash",
+              "kv_hash": "a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1"
+            },
+            "left": 0,
+            "right": 2,
+            "on_path": true
+          },
+          {
+            "id": 2,
+            "view": {
+              "kind": "hash",
+              "hash": "6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b"
+            },
+            "left": null,
+            "right": null,
+            "on_path": false
+          }
+        ]
+      },
+      "opaque_summary": null,
+      "descents": []
+    }
+  ]
+}

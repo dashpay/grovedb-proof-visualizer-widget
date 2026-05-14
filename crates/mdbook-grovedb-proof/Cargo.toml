@@ -1,0 +1,17 @@
+[package]
+name = "mdbook-grovedb-proof"
+description = "mdBook preprocessor that turns ```grovedb-proof fenced blocks into embedded grovedb-proof-visualizer widgets."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "mdbook-grovedb-proof"
+path = "src/main.rs"
+
+[dependencies]
+grovedb-proof-view = { path = "../grovedb-proof-view" }
+serde_json = { workspace = true }
+hex = { workspace = true }

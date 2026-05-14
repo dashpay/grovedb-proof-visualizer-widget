@@ -1,0 +1,40 @@
+{
+  "name": "@dashpay/grovedb-proof-visualizer",
+  "version": "0.1.0",
+  "description": "Renderable widget for GroveDB proofs. Drop-in like mermaid, but for grovedb proof bytes / Display text / JSON.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./component": {
+      "types": "./dist/component.d.ts",
+      "import": "./dist/component.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "src",
+    "proof-view.schema.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node esbuild.config.mjs && tsc --emitDeclarationOnly --outDir dist",
+    "build:watch": "node esbuild.config.mjs --watch",
+    "demo": "python3 -m http.server --directory demo 8080",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

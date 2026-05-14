@@ -1,0 +1,1554 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "BackingType": {
+      "description": "Which backing store produced this layer's proof.\n\nMirrors `grovedb::operations::proof::ProofBytes` variants.",
+      "enum": [
+        "merk",
+        "mmr",
+        "bulk_append_tree",
+        "dense_tree",
+        "commitment_tree"
+      ],
+      "type": "string"
+    },
+    "DescentEdge": {
+      "description": "Edge to a deeper layer.",
+      "properties": {
+        "from_key": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/DisplayKey"
+            }
+          ],
+          "description": "The parent-key in this layer that points down."
+        },
+        "from_node_id": {
+          "description": "If a node in this layer's `binary_tree` exposed a `Tree(merk_root, ...)` value matching the destination layer's merk-root, this is the source node's id. (Useful for the renderer to anchor the cross-layer arrow.)",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "to_layer_id": {
+          "description": "The destination layer's id.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "from_key",
+        "to_layer_id"
+      ],
+      "type": "object"
+    },
+    "DisplayKey": {
+      "description": "A merk-tree key in the form most useful for rendering: ASCII when printable, hex otherwise. The full hex is always kept on the side for hover/inspection.",
+      "properties": {
+        "display": {
+          "description": "Pretty form: ASCII when the bytes are printable, otherwise `0x…` hex.",
+          "type": "string"
+        },
+        "hex": {
+          "description": "Full hex encoding (no `0x` prefix), always available.",
+          "type": "string"
+        },
+        "is_ascii": {
+          "description": "True iff `display` is the ASCII form (i.e. all bytes were printable).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "display",
+        "hex",
+        "is_ascii"
+      ],
+      "type": "object"
+    },
+    "ElementView": {
+      "description": "Decoded `Element` value attached to a node, in render-friendly form.\n\nMirrors `grovedb_element::Element`. We collapse `Option<ElementFlags>` into a top-level `flags` field on each variant for ergonomics.",
+      "oneOf": [
+        {
+          "description": "A subtree's merk-root pointer. The renderer draws a dotted edge to the layer whose merk-root matches `merk_root` (when known).",
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "description": "Optional merk-root hash of the child subtree.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "`Tree` variant for sum trees.",
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "sum_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "big_sum_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sum": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "count_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "count",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "count_sum_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "provable_count_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "count",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "provable_count_sum_tree"
+              ],
+              "type": "string"
+            },
+            "merk_root": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "item"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "item_with_sum_item"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "sum",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "sum_item"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "reference"
+              ],
+              "type": "string"
+            },
+            "max_hop": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "reference": {
+              "$ref": "#/definitions/ReferenceView"
+            }
+          },
+          "required": [
+            "kind",
+            "reference"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "chunk_power": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "commitment_tree"
+              ],
+              "type": "string"
+            },
+            "total_count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "chunk_power",
+            "kind",
+            "total_count"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "mmr_tree"
+              ],
+              "type": "string"
+            },
+            "mmr_size": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "mmr_size"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "chunk_power": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "bulk_append_tree"
+              ],
+              "type": "string"
+            },
+            "total_count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "chunk_power",
+            "kind",
+            "total_count"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint16",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "flags": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "height": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "dense_append_only_fixed_size_tree"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "height",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "`NonCounted(Box<Element>)` — wraps another element. Renderer styles with a dashed border to flag the contributes-zero-to-parent-count property.",
+          "properties": {
+            "inner": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "kind": {
+              "enum": [
+                "non_counted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "inner",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "`NotSummed(Box<Element>)` — wraps a sum-bearing tree variant. Renderer styles with a dashed border to flag the contributes-zero-to-parent-sum property.",
+          "properties": {
+            "inner": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "kind": {
+              "enum": [
+                "not_summed"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "inner",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Element bytes that we couldn't decode. Surfaced rather than dropped.",
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "raw_hex": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "error",
+            "kind",
+            "raw_hex"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "FeatureTypeView": {
+      "description": "Mirrors `grovedb_query::proofs::TreeFeatureType`.",
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "basic_merk_node"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "summed_merk_node"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "big_summed_merk_node"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "counted_merk_node"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "counted_summed_merk_node"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "provable_counted_merk_node"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "provable_counted_summed_merk_node"
+              ],
+              "type": "string"
+            },
+            "sum": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "sum"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "LayerView": {
+      "description": "One layer of the proof: a single Merk-tree's proof, plus pointers into deeper layers.",
+      "properties": {
+        "backing": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/BackingType"
+            }
+          ],
+          "description": "Which backing-store flavor produced this proof."
+        },
+        "binary_tree": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MerkBinaryTree"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Reconstructed binary tree of merk-tree nodes — what the renderer draws. `None` when the backing is non-Merk (we render those as opaque blobs for now)."
+        },
+        "descended_via": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The path segment (parent-key) that descended into this layer, or `None` for the root."
+        },
+        "descents": {
+          "description": "Edges from this layer's nodes into deeper layers, keyed by the parent-key of the descent. Order matches sorted-key order in the source `BTreeMap`.",
+          "items": {
+            "$ref": "#/definitions/DescentEdge"
+          },
+          "type": "array"
+        },
+        "layer_id": {
+          "description": "Sequential id assigned during construction.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "opaque_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OpaqueSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "For non-Merk backings: a short opaque-blob description."
+        },
+        "ops": {
+          "description": "Decoded merk-proof op stream (only meaningful for `Merk` backing).",
+          "items": {
+            "$ref": "#/definitions/MerkOp"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "backing",
+        "descents",
+        "layer_id",
+        "ops"
+      ],
+      "type": "object"
+    },
+    "MerkBinaryNode": {
+      "description": "One node in the reconstructed binary tree.",
+      "properties": {
+        "id": {
+          "description": "Stable id (also this node's index in `MerkBinaryTree::nodes`).",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "left": {
+          "description": "Optional left child id.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "on_path": {
+          "description": "True if this node ever appeared as the parent in a `Parent`/`Child`/etc op (i.e. it's an internal node on the queried path's frame).",
+          "type": "boolean"
+        },
+        "right": {
+          "description": "Optional right child id.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "view": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/MerkNodeView"
+            }
+          ],
+          "description": "What information the proof reveals about this node."
+        }
+      },
+      "required": [
+        "id",
+        "on_path",
+        "view"
+      ],
+      "type": "object"
+    },
+    "MerkBinaryTree": {
+      "description": "Reconstructed binary tree (the result of executing the op stream). Renderer draws this.",
+      "properties": {
+        "nodes": {
+          "description": "All nodes present in the proof. Index = node id.",
+          "items": {
+            "$ref": "#/definitions/MerkBinaryNode"
+          },
+          "type": "array"
+        },
+        "root": {
+          "description": "Index of the root node within `nodes`.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodes",
+        "root"
+      ],
+      "type": "object"
+    },
+    "MerkNodeView": {
+      "description": "What a `Push` op revealed about a single merk-tree node.\n\nMirrors `grovedb_query::proofs::Node` variants.",
+      "oneOf": [
+        {
+          "description": "Just the subtree's node hash. Opaque sibling.",
+          "properties": {
+            "hash": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "hash"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "hash",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Just the kv-hash. Internal node on the path whose value isn't revealed.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "kv_hash"
+              ],
+              "type": "string"
+            },
+            "kv_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "kv_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Key + value-hash, no value. Boundary key proof.",
+          "properties": {
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_digest"
+              ],
+              "type": "string"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "kind",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Key + value (value-hash implicit as `H(value)`).",
+          "properties": {
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            }
+          },
+          "required": [
+            "key",
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Key + value + value-hash. The standard \"queried node\" form.",
+          "properties": {
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_value_hash"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "kind",
+            "value",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Like `KvValueHash` but with an extra feature-type tag (sum/count flavor).",
+          "properties": {
+            "feature_type": {
+              "$ref": "#/definitions/FeatureTypeView"
+            },
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_value_hash_feature_type"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "feature_type",
+            "key",
+            "kind",
+            "value",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Reference key + referenced value bytes + reference-element hash.",
+          "properties": {
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_ref_value_hash"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "kind",
+            "value",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Counted variants (ProvableCountTree boundary nodes etc.)",
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_count"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            }
+          },
+          "required": [
+            "count",
+            "key",
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "kv_hash_count"
+              ],
+              "type": "string"
+            },
+            "kv_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "kv_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_ref_value_hash_count"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "key",
+            "kind",
+            "value",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_digest_count"
+              ],
+              "type": "string"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "key",
+            "kind",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "`KvValueHashFeatureType` plus the child-hash, used when an in-result tree element has no lower-layer proof. The `child_hash` lets the verifier check `combine_hash(H(value), child_hash) == value_hash` directly.",
+          "properties": {
+            "child_hash": {
+              "type": "string"
+            },
+            "feature_type": {
+              "$ref": "#/definitions/FeatureTypeView"
+            },
+            "key": {
+              "$ref": "#/definitions/DisplayKey"
+            },
+            "kind": {
+              "enum": [
+                "kv_value_hash_feature_type_with_child_hash"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/ElementView"
+            },
+            "value_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "child_hash",
+            "feature_type",
+            "key",
+            "kind",
+            "value",
+            "value_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Compressed in-range subtree (AggregateCountOnRange).",
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "hash_with_count"
+              ],
+              "type": "string"
+            },
+            "kv_hash": {
+              "type": "string"
+            },
+            "left_child_hash": {
+              "type": "string"
+            },
+            "right_child_hash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "kind",
+            "kv_hash",
+            "left_child_hash",
+            "right_child_hash"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MerkOp": {
+      "description": "A single op in a merk-tree proof's op stream (post-order traversal driving a stack).\n\nJSON shape (serde tag is `op`, not `kind`, to avoid collision with the nested `MerkNodeView`'s tag):\n\n```json { \"op\": \"push\", \"node\": { \"kind\": \"kv_value_hash\", ... } } { \"op\": \"parent\" } ```",
+      "oneOf": [
+        {
+          "properties": {
+            "node": {
+              "$ref": "#/definitions/MerkNodeView"
+            },
+            "op": {
+              "enum": [
+                "push"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "node",
+            "op"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "node": {
+              "$ref": "#/definitions/MerkNodeView"
+            },
+            "op": {
+              "enum": [
+                "push_inverted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "node",
+            "op"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "op": {
+              "enum": [
+                "parent"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "op": {
+              "enum": [
+                "child"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "op": {
+              "enum": [
+                "parent_inverted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "op": {
+              "enum": [
+                "child_inverted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "OpaqueSummary": {
+      "description": "For non-Merk backings: a short summary instead of a full node breakdown.",
+      "properties": {
+        "backing": {
+          "$ref": "#/definitions/BackingType"
+        },
+        "byte_length": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "raw_hex_truncated": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "backing",
+        "byte_length",
+        "raw_hex_truncated"
+      ],
+      "type": "object"
+    },
+    "ReferenceView": {
+      "description": "Reference-path payload, render-friendly.",
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "absolute"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "items": {
+                "$ref": "#/definitions/DisplayKey"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "upstream_root_height"
+              ],
+              "type": "string"
+            },
+            "n_keep": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "path_append": {
+              "items": {
+                "$ref": "#/definitions/DisplayKey"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "n_keep",
+            "path_append"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "upstream_root_height_with_parent_path_addition"
+              ],
+              "type": "string"
+            },
+            "n_keep": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "path_append": {
+              "items": {
+                "$ref": "#/definitions/DisplayKey"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "n_keep",
+            "path_append"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "upstream_from_element_height"
+              ],
+              "type": "string"
+            },
+            "n_remove": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "path_append": {
+              "items": {
+                "$ref": "#/definitions/DisplayKey"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "n_remove",
+            "path_append"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "cousin"
+              ],
+              "type": "string"
+            },
+            "swap_parent": {
+              "$ref": "#/definitions/DisplayKey"
+            }
+          },
+          "required": [
+            "kind",
+            "swap_parent"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "removed_cousin"
+              ],
+              "type": "string"
+            },
+            "swap_parent": {
+              "items": {
+                "$ref": "#/definitions/DisplayKey"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "swap_parent"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "kind": {
+              "enum": [
+                "sibling"
+              ],
+              "type": "string"
+            },
+            "sibling_key": {
+              "$ref": "#/definitions/DisplayKey"
+            }
+          },
+          "required": [
+            "kind",
+            "sibling_key"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "description": "A parsed GroveDB proof in render-friendly form.",
+  "properties": {
+    "layers": {
+      "description": "All layers, indexed by `LayerView::layer_id`. Order is insertion order (root first, then children in `BTreeMap` key order — i.e. lexicographic by parent-key).",
+      "items": {
+        "$ref": "#/definitions/LayerView"
+      },
+      "type": "array"
+    },
+    "root_layer_id": {
+      "description": "Index of the root layer in `layers` (always `0` from the bytes parser, but surfaced explicitly so consumers don't need to special-case).",
+      "format": "uint",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "version": {
+      "description": "Proof format version: `0` (legacy `GroveDBProofV0`) or `1` (current `GroveDBProofV1`).",
+      "format": "uint8",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "layers",
+    "root_layer_id",
+    "version"
+  ],
+  "title": "ProofView",
+  "type": "object"
+}

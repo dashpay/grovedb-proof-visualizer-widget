@@ -1,0 +1,22 @@
+[package]
+name = "grovedb-proof-view-wasm"
+description = "wasm-bindgen wrapper around grovedb-proof-view for browser use."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+grovedb-proof-view = { path = "../grovedb-proof-view" }
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+serde_json = { workspace = true }
+hex = { workspace = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]

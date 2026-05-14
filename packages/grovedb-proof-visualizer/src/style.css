@@ -1,0 +1,199 @@
+/* grovedb-proof-visualizer — default stylesheet.
+ *
+ * Themed via CSS variables. Override on `.gpv-root` or any ancestor.
+ * Defaults match the dark `navy` mdbook theme (which the dash-platform book uses);
+ * a `[data-gpv-theme="light"]` override flips to a light variant.
+ */
+
+.gpv-root {
+  --gpv-bg: #0d1117;
+  --gpv-fg: #c9d1d9;
+  --gpv-muted: #6e7681;
+  --gpv-panel: #21262d;
+  --gpv-panel-2: #1c2129;
+  --gpv-border: #30363d;
+
+  --gpv-blue: #1f6feb;
+  --gpv-blue-fg: #ffffff;
+  --gpv-cyan: #39c5cf;
+  --gpv-cyan-fg: #0d1117;
+  --gpv-grey: #6e7681;
+  --gpv-grey-fg: #ffffff;
+  --gpv-edge: #484f58;
+  --gpv-descent: #1f6feb;
+
+  --gpv-radius: 8px;
+  --gpv-gap: 16px;
+
+  position: relative;
+  color: var(--gpv-fg);
+  background: var(--gpv-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  border-radius: var(--gpv-radius);
+  padding: var(--gpv-gap);
+}
+
+.gpv-root[data-gpv-theme="light"] {
+  --gpv-bg: #ffffff;
+  --gpv-fg: #1f2328;
+  --gpv-muted: #6e7681;
+  --gpv-panel: #f6f8fa;
+  --gpv-panel-2: #ffffff;
+  --gpv-border: #d0d7de;
+  --gpv-edge: #afb8c1;
+  --gpv-grey-fg: #ffffff;
+}
+
+.gpv-layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gpv-gap);
+}
+
+.gpv-layer {
+  background: var(--gpv-panel);
+  border: 1px solid var(--gpv-border);
+  border-radius: var(--gpv-radius);
+  overflow: hidden;
+}
+
+.gpv-layer-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: baseline;
+  background: var(--gpv-panel-2);
+  border-bottom: 1px solid var(--gpv-border);
+}
+.gpv-layer-summary::-webkit-details-marker { display: none; }
+.gpv-layer-summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 120ms ease;
+  color: var(--gpv-muted);
+}
+.gpv-layer[open] > .gpv-layer-summary::before { transform: rotate(90deg); }
+
+.gpv-layer-id { font-weight: 600; color: var(--gpv-fg); }
+.gpv-layer-meta { color: var(--gpv-muted); }
+.gpv-layer-descended { margin-left: auto; color: var(--gpv-muted); }
+.gpv-layer-descended code,
+.gpv-descent-chip code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  background: var(--gpv-panel);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--gpv-fg);
+}
+
+.gpv-layer-body {
+  padding: 14px;
+  overflow-x: auto;
+}
+
+.gpv-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.gpv-merk-tree .gpv-edge { stroke: var(--gpv-edge); stroke-width: 1.5; }
+
+.gpv-node rect {
+  fill: var(--gpv-panel);
+  stroke: var(--gpv-border);
+  stroke-width: 1;
+}
+.gpv-node-primary {
+  fill: var(--gpv-fg);
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+}
+.gpv-node-secondary {
+  fill: var(--gpv-muted);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+}
+
+.gpv-node--descend rect { fill: var(--gpv-blue); stroke: var(--gpv-blue); }
+.gpv-node--descend .gpv-node-primary,
+.gpv-node--descend .gpv-node-secondary { fill: var(--gpv-blue-fg); }
+
+.gpv-node--target rect {
+  fill: var(--gpv-cyan); stroke: var(--gpv-cyan); stroke-width: 2;
+}
+.gpv-node--target .gpv-node-primary,
+.gpv-node--target .gpv-node-secondary { fill: var(--gpv-cyan-fg); }
+
+.gpv-node--internal rect { fill: var(--gpv-panel-2); }
+.gpv-node--opaque rect { fill: var(--gpv-grey); stroke: var(--gpv-grey); }
+.gpv-node--opaque .gpv-node-primary,
+.gpv-node--opaque .gpv-node-secondary { fill: var(--gpv-grey-fg); }
+
+.gpv-descent-list {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gpv-descent-chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--gpv-panel-2);
+  border: 1px solid var(--gpv-border);
+  color: var(--gpv-muted);
+  cursor: pointer;
+}
+.gpv-descent-chip:hover { color: var(--gpv-fg); }
+
+.gpv-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gpv-overlay .gpv-descent {
+  stroke: var(--gpv-descent);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  opacity: 0.85;
+}
+.gpv-overlay .gpv-descent-label {
+  fill: var(--gpv-descent);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: var(--gpv-bg);
+  stroke-width: 4;
+}
+
+.gpv-opaque {
+  padding: 12px;
+  background: var(--gpv-panel-2);
+  border: 1px dashed var(--gpv-border);
+  border-radius: 6px;
+  color: var(--gpv-muted);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+.gpv-error {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #2d0e0e;
+  color: #ffd1d1;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
