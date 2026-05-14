@@ -70,6 +70,23 @@
   background: var(--gpv-panel-2);
   border-bottom: 1px solid var(--gpv-border);
 }
+
+.gpv-expand-btn {
+  margin-left: 6px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--gpv-border);
+  border-radius: 4px;
+  color: var(--gpv-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.gpv-expand-btn:hover {
+  color: var(--gpv-fg);
+  border-color: var(--gpv-blue);
+}
 .gpv-layer-summary::-webkit-details-marker { display: none; }
 .gpv-layer-summary::before {
   content: "▶";
@@ -197,3 +214,39 @@
   font-size: 12px;
   white-space: pre-wrap;
 }
+
+/* Fullscreen mode: a single expanded layer fills the viewport, the rest of the
+ * widget (other layers + the cross-layer descent overlay) is hidden so the
+ * Merk tree gets all the room. The SVG renders at natural pixel size with
+ * scroll on both axes — readable text, even on 19-node trees. */
+.gpv-layer--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  background: var(--gpv-bg);
+  display: flex;
+  flex-direction: column;
+}
+.gpv-layer--fullscreen > .gpv-layer-summary {
+  flex: 0 0 auto;
+}
+.gpv-layer--fullscreen > .gpv-layer-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 24px;
+}
+.gpv-layer--fullscreen .gpv-svg {
+  max-width: none;
+  width: auto;
+  height: auto;
+}
+
+.gpv-root.gpv-has-fullscreen .gpv-overlay { display: none; }
+.gpv-root.gpv-has-fullscreen .gpv-layer:not(.gpv-layer--fullscreen) {
+  display: none;
+}
+/* prevent body scroll while a layer is fullscreen */
+body:has(.gpv-layer--fullscreen) { overflow: hidden; }
