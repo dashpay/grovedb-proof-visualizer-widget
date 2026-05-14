@@ -11,7 +11,7 @@ Three input formats, one rendered widget:
 | Format         | How it gets there                                     |
 |----------------|--------------------------------------------------------|
 | **Raw bytes**  | hex/base64 string → WASM bincode decoder → IR          |
-| **Display text** (`GroveDBProofV1 { ... }`) | recursive-descent parser → IR (phase 4 — in progress) |
+| **Display text** (`GroveDBProofV1 { ... }`) | recursive-descent parser → IR             |
 | **Proof IR JSON** | direct deserialization                              |
 
 ## Crates / packages

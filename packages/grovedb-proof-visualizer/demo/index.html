@@ -33,7 +33,6 @@
         font: inherit;
       }
       button:hover { border-color: #58a6ff; }
-      button:disabled { opacity: 0.5; cursor: progress; }
       .status { color: #6e7681; font-size: 12px; }
     </style>
   </head>
@@ -42,6 +41,7 @@
 
     <div class="controls">
       <button id="load-json">Load (JSON IR)</button>
+      <button id="load-text">Load (Display text)</button>
       <button id="load-bytes">Load (raw hex bytes via WASM)</button>
       <button id="toggle-theme">Toggle theme</button>
       <button id="toggle-collapsed">Collapse / expand all</button>
@@ -72,6 +72,14 @@
         const view = await fetch("query1_count.json").then((r) => r.json());
         renderProofView(host, view);
         status.textContent = `rendered ${view.layers.length} layers from JSON IR`;
+      });
+
+      document.getElementById("load-text").addEventListener("click", async () => {
+        const adapters = await loadWasm();
+        status.textContent = "fetching Display text…";
+        const text = await fetch("query1_count.txt").then((r) => r.text());
+        await renderProof(host, { format: "text", data: text }, { adapters });
+        status.textContent = `rendered from Display text (${text.length} chars → IR via WASM)`;
       });
 
       document.getElementById("load-bytes").addEventListener("click", async () => {
