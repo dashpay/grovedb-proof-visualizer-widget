@@ -16,12 +16,16 @@ import {
   Hash32,
   hex,
   hexToBytes,
+  i64BE,
   kvHashFromValueHash,
   NULL_HASH,
   nodeHash,
   nodeHashWithCount,
-  varint,
+  nodeHashWithCountAndSum,
+  nodeHashWithSum,
+  u64BE,
   valueHash,
+  varint,
 } from "./hashing.js";
 
 export interface Recipe {
@@ -54,6 +58,20 @@ export interface RecipeInput {
 }
 
 /**
+ * Which aggregate gets folded into a node's hash:
+ *   - `none`: plain `node_hash(kv, left, right)`
+ *   - `count`: `node_hash_with_count(kv, left, right, count)` — ProvableCountTree
+ *   - `sum`: `node_hash_with_sum(kv, left, right, sum)` — ProvableSumTree
+ *   - `countSum`: `node_hash_with_count_and_sum(kv, left, right, count, sum)` —
+ *     ProvableCountProvableSumTree
+ */
+type Aggregate =
+  | { kind: "none" }
+  | { kind: "count"; count: bigint }
+  | { kind: "sum"; sum: bigint }
+  | { kind: "countSum"; count: bigint; sum: bigint };
+
+/**
  * Walk the tree post-order and compute every node's `node_hash`. This is the
  * same recursion the Merk verifier does — we mirror it so the panel can show
  * each child's contribution as the result of its own (cached) computation.
@@ -81,12 +99,88 @@ export function recipeFor(node: MerkBinaryNode, left: Hash32, right: Hash32): Re
   switch (v.kind) {
     case "hash":
       return opaqueHash(v.hash);
+
+    // Compressed subtree roots — self-contained, no children needed.
     case "hash_with_count":
-      return hashWithCountRecipe(v.kv_hash, v.left_child_hash, v.right_child_hash, v.count);
+      return hashWithAggregateRecipe(
+        v.kv_hash,
+        v.left_child_hash,
+        v.right_child_hash,
+        { kind: "count", count: BigInt(v.count) },
+        "HashWithCount",
+      );
+    case "hash_with_sum":
+      return hashWithAggregateRecipe(
+        v.kv_hash,
+        v.left_child_hash,
+        v.right_child_hash,
+        { kind: "sum", sum: BigInt(v.sum) },
+        "HashWithSum",
+      );
+    case "hash_with_count_and_sum":
+      return hashWithAggregateRecipe(
+        v.kv_hash,
+        v.left_child_hash,
+        v.right_child_hash,
+        { kind: "countSum", count: BigInt(v.count), sum: BigInt(v.sum) },
+        "HashWithCountAndSum",
+      );
+
+    // Internal "only kv_hash" variants (no key/value revealed).
     case "kv_hash":
-      return kvHashRecipe(v.kv_hash, left, right);
+      return kvHashGivenRecipe(v.kv_hash, left, right, { kind: "none" });
+    case "kv_hash_count":
+      return kvHashGivenRecipe(v.kv_hash, left, right, {
+        kind: "count",
+        count: BigInt(v.count),
+      });
+    case "kv_hash_sum":
+      return kvHashGivenRecipe(v.kv_hash, left, right, {
+        kind: "sum",
+        sum: BigInt(v.sum),
+      });
+    case "kv_hash_count_sum":
+      return kvHashGivenRecipe(v.kv_hash, left, right, {
+        kind: "countSum",
+        count: BigInt(v.count),
+        sum: BigInt(v.sum),
+      });
+
+    // KV (full key + value bytes available — compute value_hash from value).
     case "kv":
-      return kvRecipe(asciiOrHexToBytes(v.key.hex), elementValueBytes(v.value), left, right);
+      return kvFromValueRecipe(
+        asciiOrHexToBytes(v.key.hex),
+        elementValueBytes(v.value),
+        left,
+        right,
+        { kind: "none" },
+      );
+    case "kv_count":
+      return kvFromValueRecipe(
+        asciiOrHexToBytes(v.key.hex),
+        elementValueBytes(v.value),
+        left,
+        right,
+        { kind: "count", count: BigInt(v.count) },
+      );
+    case "kv_sum":
+      return kvFromValueRecipe(
+        asciiOrHexToBytes(v.key.hex),
+        elementValueBytes(v.value),
+        left,
+        right,
+        { kind: "sum", sum: BigInt(v.sum) },
+      );
+    case "kv_count_sum":
+      return kvFromValueRecipe(
+        asciiOrHexToBytes(v.key.hex),
+        elementValueBytes(v.value),
+        left,
+        right,
+        { kind: "countSum", count: BigInt(v.count), sum: BigInt(v.sum) },
+      );
+
+    // KVValueHash family — value_hash is given (potentially a combined hash).
     case "kv_value_hash":
       return kvValueHashRecipe(
         asciiOrHexToBytes(v.key.hex),
@@ -94,22 +188,24 @@ export function recipeFor(node: MerkBinaryNode, left: Hash32, right: Hash32): Re
         v.value_hash,
         left,
         right,
+        { kind: "none" },
       );
     case "kv_value_hash_feature_type":
     case "kv_value_hash_feature_type_with_child_hash": {
-      const childHash = v.kind === "kv_value_hash_feature_type_with_child_hash"
-        ? hexToBytes(v.child_hash)
-        : null;
+      const childHashHex =
+        v.kind === "kv_value_hash_feature_type_with_child_hash" ? v.child_hash : null;
       return kvValueHashFeatureRecipe(
         asciiOrHexToBytes(v.key.hex),
         v.value,
         v.value_hash,
         v.feature_type,
-        childHash,
+        childHashHex,
         left,
         right,
       );
     }
+
+    // KVRef variants — combined_value_hash from node_value_hash + referenced_value_hash.
     case "kv_ref_value_hash":
       return kvRefValueHashRecipe(
         asciiOrHexToBytes(v.key.hex),
@@ -117,8 +213,7 @@ export function recipeFor(node: MerkBinaryNode, left: Hash32, right: Hash32): Re
         v.value_hash,
         left,
         right,
-        false,
-        0n,
+        { kind: "none" },
       );
     case "kv_ref_value_hash_count":
       return kvRefValueHashRecipe(
@@ -127,29 +222,48 @@ export function recipeFor(node: MerkBinaryNode, left: Hash32, right: Hash32): Re
         v.value_hash,
         left,
         right,
-        true,
-        BigInt(v.count),
+        { kind: "count", count: BigInt(v.count) },
       );
-    case "kv_count":
-      return kvCountRecipe(
+    case "kv_ref_value_hash_sum":
+      return kvRefValueHashRecipe(
         asciiOrHexToBytes(v.key.hex),
         elementValueBytes(v.value),
-        BigInt(v.count),
-        left,
-        right,
-      );
-    case "kv_hash_count":
-      return kvHashCountRecipe(v.kv_hash, BigInt(v.count), left, right);
-    case "kv_digest":
-      return kvDigestRecipe(asciiOrHexToBytes(v.key.hex), v.value_hash, left, right);
-    case "kv_digest_count":
-      return kvDigestCountRecipe(
-        asciiOrHexToBytes(v.key.hex),
         v.value_hash,
-        BigInt(v.count),
         left,
         right,
+        { kind: "sum", sum: BigInt(v.sum) },
       );
+    case "kv_ref_value_hash_count_sum":
+      return kvRefValueHashRecipe(
+        asciiOrHexToBytes(v.key.hex),
+        elementValueBytes(v.value),
+        v.value_hash,
+        left,
+        right,
+        { kind: "countSum", count: BigInt(v.count), sum: BigInt(v.sum) },
+      );
+
+    // KVDigest — boundary keys (key + value_hash, no value bytes).
+    case "kv_digest":
+      return kvDigestRecipe(asciiOrHexToBytes(v.key.hex), v.value_hash, left, right, {
+        kind: "none",
+      });
+    case "kv_digest_count":
+      return kvDigestRecipe(asciiOrHexToBytes(v.key.hex), v.value_hash, left, right, {
+        kind: "count",
+        count: BigInt(v.count),
+      });
+    case "kv_digest_sum":
+      return kvDigestRecipe(asciiOrHexToBytes(v.key.hex), v.value_hash, left, right, {
+        kind: "sum",
+        sum: BigInt(v.sum),
+      });
+    case "kv_digest_count_sum":
+      return kvDigestRecipe(asciiOrHexToBytes(v.key.hex), v.value_hash, left, right, {
+        kind: "countSum",
+        count: BigInt(v.count),
+        sum: BigInt(v.sum),
+      });
   }
 }
 
@@ -167,56 +281,62 @@ function opaqueHash(h: string): Recipe {
   };
 }
 
-function hashWithCountRecipe(
+function hashWithAggregateRecipe(
   kvHashHex: string,
   leftHashHex: string,
   rightHashHex: string,
-  count: number,
+  aggregate: Aggregate,
+  variantName: string,
 ): Recipe {
   const kvHash = hexToBytes(kvHashHex);
   const leftHash = hexToBytes(leftHashHex);
   const rightHash = hexToBytes(rightHashHex);
-  const out = nodeHashWithCount(kvHash, leftHash, rightHash, BigInt(count));
+  const step = nodeHashStep(kvHash, leftHash, rightHash, aggregate, {
+    leftNote: "subtree root's left child",
+    rightNote: "subtree root's right child",
+    kvNote: "stored kv_hash for the subtree's root",
+  });
   return {
-    finalHash: out,
-    summary: `Compressed in-range subtree (count=${count})`,
+    finalHash: step.output,
+    summary: `Compressed in-range subtree summary (${variantName}${aggregateLabel(aggregate)})`,
     notes: [
-      "AggregateCountOnRange collapses an entire fully-inside subtree into one node by committing its (kv_hash, left, right, count). The verifier recomputes node_hash_with_count from those four fields — a forged count would change the result.",
+      "AggregateCount / AggregateSum / combined collapses an entire fully-inside subtree into one node by committing its (kv_hash, left, right" +
+        aggregateNoteTail(aggregate) +
+        "). The verifier recomputes the matching node_hash variant from these fields — a forged aggregate diverges the result.",
     ],
-    steps: [
-      {
-        name: "node_hash",
-        formula: "blake3(kv_hash || left_child_hash || right_child_hash || count_be8)",
-        inputs: [
-          { label: "kv_hash", bytes: kvHash, note: "stored kv_hash for the subtree's root" },
-          { label: "left_child_hash", bytes: leftHash, note: "subtree root's left child" },
-          { label: "right_child_hash", bytes: rightHash, note: "subtree root's right child" },
-          { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `${count}` },
-        ],
-        output: out,
-      },
-    ],
+    steps: [step],
   };
 }
 
-function kvHashRecipe(kvHashHex: string, left: Hash32, right: Hash32): Recipe {
+function kvHashGivenRecipe(
+  kvHashHex: string,
+  left: Hash32,
+  right: Hash32,
+  aggregate: Aggregate,
+): Recipe {
   const kvHash = hexToBytes(kvHashHex);
-  const out = nodeHash(kvHash, left, right);
+  const step = nodeHashStep(kvHash, left, right, aggregate);
   return {
-    finalHash: out,
-    summary: "Internal node — only its kv_hash is revealed",
+    finalHash: step.output,
+    summary: `Internal node — only its kv_hash is revealed${aggregateLabel(aggregate)}`,
     notes: [],
-    steps: [nodeHashStep(kvHash, left, right, out)],
+    steps: [step],
   };
 }
 
-function kvRecipe(key: Uint8Array, value: Uint8Array, left: Hash32, right: Hash32): Recipe {
+function kvFromValueRecipe(
+  key: Uint8Array,
+  value: Uint8Array,
+  left: Hash32,
+  right: Hash32,
+  aggregate: Aggregate,
+): Recipe {
   const vh = valueHash(value);
   const kvh = kvHashFromValueHash(key, vh);
-  const out = nodeHash(kvh, left, right);
+  const nh = nodeHashStep(kvh, left, right, aggregate);
   return {
-    finalHash: out,
-    summary: "KV node — full key + value in proof",
+    finalHash: nh.output,
+    summary: `KV node — full key + value in proof${aggregateLabel(aggregate)}`,
     notes: [],
     steps: [
       {
@@ -229,7 +349,7 @@ function kvRecipe(key: Uint8Array, value: Uint8Array, left: Hash32, right: Hash3
         output: vh,
       },
       kvHashStep(key, vh, kvh),
-      nodeHashStep(kvh, left, right, out),
+      nh,
     ],
   };
 }
@@ -240,17 +360,18 @@ function kvValueHashRecipe(
   valueHashHex: string,
   left: Hash32,
   right: Hash32,
+  aggregate: Aggregate,
 ): Recipe {
   const vh = hexToBytes(valueHashHex);
   const kvh = kvHashFromValueHash(key, vh);
-  const out = nodeHash(kvh, left, right);
+  const nh = nodeHashStep(kvh, left, right, aggregate);
   return {
-    finalHash: out,
-    summary: `Queried node — key, value (${value.kind}) and its value_hash`,
+    finalHash: nh.output,
+    summary: `Queried node — key, value (${value.kind}) and its value_hash${aggregateLabel(aggregate)}`,
     notes: [
       "The proof gives value_hash directly; for Tree-valued elements it is `combine_hash(H(value), child_hash)` so we don't recompute it from the value bytes.",
     ],
-    steps: [kvHashStep(key, vh, kvh), nodeHashStep(kvh, left, right, out)],
+    steps: [kvHashStep(key, vh, kvh), nh],
   };
 }
 
@@ -259,44 +380,27 @@ function kvValueHashFeatureRecipe(
   value: ElementView,
   valueHashHex: string,
   ft: FeatureTypeView,
-  childHash: Hash32 | null,
+  childHashHex: string | null,
   left: Hash32,
   right: Hash32,
 ): Recipe {
   const vh = hexToBytes(valueHashHex);
   const kvh = kvHashFromValueHash(key, vh);
-  // feature_type may make this a "_with_count" node hash
-  let out: Hash32;
-  let nodeStep: RecipeStep;
-  const count = featureCount(ft);
-  if (count != null) {
-    out = nodeHashWithCount(kvh, left, right, count);
-    nodeStep = {
-      name: "node_hash_with_count",
-      formula: "blake3(kv_hash || left || right || count_be8)",
-      inputs: [
-        { label: "kv_hash", bytes: kvh },
-        { label: "left", bytes: left },
-        { label: "right", bytes: right },
-        { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `feature_type ${ft.kind}` },
-      ],
-      output: out,
-    };
-  } else {
-    out = nodeHash(kvh, left, right);
-    nodeStep = nodeHashStep(kvh, left, right, out);
-  }
+  const aggregate = featureAggregate(ft);
+  const nh = nodeHashStep(kvh, left, right, aggregate);
   const notes: string[] = [];
-  if (childHash) {
+  if (childHashHex) {
     notes.push(
       "child_hash is GroveDB-level metadata (the merk root of the omitted lower layer). It does NOT participate in this Merk node hash; it appears here so the verifier can check the embedded subtree without expanding it.",
     );
   }
   return {
-    finalHash: out,
-    summary: `Queried node — key, value (${value.kind}), value_hash, feature_type=${ft.kind}${childHash ? ", + child_hash" : ""}`,
+    finalHash: nh.output,
+    summary: `Queried node — key, value (${value.kind}), value_hash, feature_type=${ft.kind}${
+      childHashHex ? ", + child_hash" : ""
+    }${aggregateLabel(aggregate)}`,
     notes,
-    steps: [kvHashStep(key, vh, kvh), nodeStep],
+    steps: [kvHashStep(key, vh, kvh), nh],
   };
 }
 
@@ -306,21 +410,16 @@ function kvRefValueHashRecipe(
   nodeValueHashHex: string,
   left: Hash32,
   right: Hash32,
-  withCount: boolean,
-  count: bigint,
+  aggregate: Aggregate,
 ): Recipe {
   const nodeValueHash = hexToBytes(nodeValueHashHex);
   const refValueHash = valueHash(referencedValue);
   const combined = combineHash(nodeValueHash, refValueHash);
   const kvh = kvHashFromValueHash(key, combined);
-  const out = withCount
-    ? nodeHashWithCount(kvh, left, right, count)
-    : nodeHash(kvh, left, right);
+  const nh = nodeHashStep(kvh, left, right, aggregate);
   return {
-    finalHash: out,
-    summary: withCount
-      ? `Reference (counted) — combines node_value_hash with referenced_value_hash`
-      : `Reference — combines node_value_hash with referenced_value_hash`,
+    finalHash: nh.output,
+    summary: `Reference — combines node_value_hash with referenced_value_hash${aggregateLabel(aggregate)}`,
     notes: [],
     steps: [
       {
@@ -346,87 +445,7 @@ function kvRefValueHashRecipe(
         output: combined,
       },
       kvHashStep(key, combined, kvh),
-      withCount
-        ? {
-            name: "node_hash_with_count",
-            formula: "blake3(kv_hash || left || right || count_be8)",
-            inputs: [
-              { label: "kv_hash", bytes: kvh },
-              { label: "left", bytes: left },
-              { label: "right", bytes: right },
-              { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `${count}` },
-            ],
-            output: out,
-          }
-        : nodeHashStep(kvh, left, right, out),
-    ],
-  };
-}
-
-function kvCountRecipe(
-  key: Uint8Array,
-  value: Uint8Array,
-  count: bigint,
-  left: Hash32,
-  right: Hash32,
-): Recipe {
-  const vh = valueHash(value);
-  const kvh = kvHashFromValueHash(key, vh);
-  const out = nodeHashWithCount(kvh, left, right, count);
-  return {
-    finalHash: out,
-    summary: `KVCount — full key + value in a ProvableCountTree (count=${count})`,
-    notes: [],
-    steps: [
-      {
-        name: "value_hash",
-        formula: "blake3(varint(value.len) || value)",
-        inputs: [
-          { label: "varint(value.len)", bytes: varint(value.length), note: `len=${value.length}` },
-          { label: "value", bytes: value },
-        ],
-        output: vh,
-      },
-      kvHashStep(key, vh, kvh),
-      {
-        name: "node_hash_with_count",
-        formula: "blake3(kv_hash || left || right || count_be8)",
-        inputs: [
-          { label: "kv_hash", bytes: kvh },
-          { label: "left", bytes: left },
-          { label: "right", bytes: right },
-          { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `${count}` },
-        ],
-        output: out,
-      },
-    ],
-  };
-}
-
-function kvHashCountRecipe(
-  kvHashHex: string,
-  count: bigint,
-  left: Hash32,
-  right: Hash32,
-): Recipe {
-  const kvh = hexToBytes(kvHashHex);
-  const out = nodeHashWithCount(kvh, left, right, count);
-  return {
-    finalHash: out,
-    summary: `KVHashCount — internal ProvableCountTree node (count=${count})`,
-    notes: [],
-    steps: [
-      {
-        name: "node_hash_with_count",
-        formula: "blake3(kv_hash || left || right || count_be8)",
-        inputs: [
-          { label: "kv_hash", bytes: kvh },
-          { label: "left", bytes: left },
-          { label: "right", bytes: right },
-          { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `${count}` },
-        ],
-        output: out,
-      },
+      nh,
     ],
   };
 }
@@ -436,46 +455,16 @@ function kvDigestRecipe(
   valueHashHex: string,
   left: Hash32,
   right: Hash32,
+  aggregate: Aggregate,
 ): Recipe {
   const vh = hexToBytes(valueHashHex);
   const kvh = kvHashFromValueHash(key, vh);
-  const out = nodeHash(kvh, left, right);
+  const nh = nodeHashStep(kvh, left, right, aggregate);
   return {
-    finalHash: out,
-    summary: "KVDigest — boundary key + value_hash (no value bytes)",
+    finalHash: nh.output,
+    summary: `KVDigest — boundary key + value_hash (no value bytes)${aggregateLabel(aggregate)}`,
     notes: [],
-    steps: [kvHashStep(key, vh, kvh), nodeHashStep(kvh, left, right, out)],
-  };
-}
-
-function kvDigestCountRecipe(
-  key: Uint8Array,
-  valueHashHex: string,
-  count: bigint,
-  left: Hash32,
-  right: Hash32,
-): Recipe {
-  const vh = hexToBytes(valueHashHex);
-  const kvh = kvHashFromValueHash(key, vh);
-  const out = nodeHashWithCount(kvh, left, right, count);
-  return {
-    finalHash: out,
-    summary: `KVDigestCount — boundary key + value_hash + aggregate count=${count}`,
-    notes: [],
-    steps: [
-      kvHashStep(key, vh, kvh),
-      {
-        name: "node_hash_with_count",
-        formula: "blake3(kv_hash || left || right || count_be8)",
-        inputs: [
-          { label: "kv_hash", bytes: kvh },
-          { label: "left", bytes: left },
-          { label: "right", bytes: right },
-          { label: "count (u64 BE)", bytes: u64BeBytes(count), note: `${count}` },
-        ],
-        output: out,
-      },
-    ],
+    steps: [kvHashStep(key, vh, kvh), nh],
   };
 }
 
@@ -494,17 +483,103 @@ function kvHashStep(key: Uint8Array, valueHash: Hash32, output: Hash32): RecipeS
   };
 }
 
-function nodeHashStep(kvHash: Hash32, left: Hash32, right: Hash32, output: Hash32): RecipeStep {
-  return {
-    name: "node_hash",
-    formula: "blake3(kv_hash || left_child_hash || right_child_hash)",
-    inputs: [
-      { label: "kv_hash", bytes: kvHash },
-      { label: "left_child_hash", bytes: left, note: isNullHash(left) ? "(NULL — no left child)" : undefined },
-      { label: "right_child_hash", bytes: right, note: isNullHash(right) ? "(NULL — no right child)" : undefined },
-    ],
-    output,
-  };
+/**
+ * Build the final node_hash step using whichever Merk hash variant the
+ * aggregate calls for. One function for the four flavors keeps the per-variant
+ * builders short and ensures the panel renders the same way everywhere.
+ */
+function nodeHashStep(
+  kvHash: Hash32,
+  left: Hash32,
+  right: Hash32,
+  aggregate: Aggregate,
+  notes: { kvNote?: string; leftNote?: string; rightNote?: string } = {},
+): RecipeStep {
+  const baseInputs: RecipeInput[] = [
+    { label: "kv_hash", bytes: kvHash, note: notes.kvNote },
+    {
+      label: "left_child_hash",
+      bytes: left,
+      note: notes.leftNote ?? (isNullHash(left) ? "(NULL — no left child)" : undefined),
+    },
+    {
+      label: "right_child_hash",
+      bytes: right,
+      note: notes.rightNote ?? (isNullHash(right) ? "(NULL — no right child)" : undefined),
+    },
+  ];
+  switch (aggregate.kind) {
+    case "none":
+      return {
+        name: "node_hash",
+        formula: "blake3(kv_hash || left_child_hash || right_child_hash)",
+        inputs: baseInputs,
+        output: nodeHash(kvHash, left, right),
+      };
+    case "count":
+      return {
+        name: "node_hash_with_count",
+        formula: "blake3(kv_hash || left || right || count_be8)",
+        inputs: [
+          ...baseInputs,
+          { label: "count (u64 BE)", bytes: u64BE(aggregate.count), note: `${aggregate.count}` },
+        ],
+        output: nodeHashWithCount(kvHash, left, right, aggregate.count),
+      };
+    case "sum":
+      return {
+        name: "node_hash_with_sum",
+        formula: "blake3(kv_hash || left || right || sum_be8)",
+        inputs: [
+          ...baseInputs,
+          { label: "sum (i64 BE)", bytes: i64BE(aggregate.sum), note: `${aggregate.sum}` },
+        ],
+        output: nodeHashWithSum(kvHash, left, right, aggregate.sum),
+      };
+    case "countSum":
+      return {
+        name: "node_hash_with_count_and_sum",
+        formula: "blake3(kv_hash || left || right || count_be8 || sum_be8)",
+        inputs: [
+          ...baseInputs,
+          { label: "count (u64 BE)", bytes: u64BE(aggregate.count), note: `${aggregate.count}` },
+          { label: "sum (i64 BE)", bytes: i64BE(aggregate.sum), note: `${aggregate.sum}` },
+        ],
+        output: nodeHashWithCountAndSum(
+          kvHash,
+          left,
+          right,
+          aggregate.count,
+          aggregate.sum,
+        ),
+      };
+  }
+}
+
+function aggregateLabel(a: Aggregate): string {
+  switch (a.kind) {
+    case "none":
+      return "";
+    case "count":
+      return ` (count=${a.count})`;
+    case "sum":
+      return ` (sum=${a.sum})`;
+    case "countSum":
+      return ` (count=${a.count}, sum=${a.sum})`;
+  }
+}
+
+function aggregateNoteTail(a: Aggregate): string {
+  switch (a.kind) {
+    case "none":
+      return "";
+    case "count":
+      return ", count";
+    case "sum":
+      return ", sum";
+    case "countSum":
+      return ", count, sum";
+  }
 }
 
 function isNullHash(h: Hash32): boolean {
@@ -512,21 +587,20 @@ function isNullHash(h: Hash32): boolean {
   return true;
 }
 
-function featureCount(ft: FeatureTypeView): bigint | null {
+function featureAggregate(ft: FeatureTypeView): Aggregate {
   switch (ft.kind) {
     case "provable_counted_merk_node":
+      return { kind: "count", count: BigInt(ft.count) };
     case "provable_counted_summed_merk_node":
-      return BigInt(ft.count);
+      // Provable count+sum tree (legacy variant) hashes count only, sum tracked but not hashed.
+      return { kind: "count", count: BigInt(ft.count) };
+    case "provable_summed_merk_node":
+      return { kind: "sum", sum: BigInt(ft.sum) };
+    case "provable_counted_and_provable_summed_merk_node":
+      return { kind: "countSum", count: BigInt(ft.count), sum: BigInt(ft.sum) };
     default:
-      return null;
+      return { kind: "none" };
   }
-}
-
-function u64BeBytes(n: number | bigint): Uint8Array {
-  const v = typeof n === "bigint" ? n : BigInt(n);
-  const out = new Uint8Array(8);
-  new DataView(out.buffer).setBigUint64(0, v, false);
-  return out;
 }
 
 /**
@@ -540,8 +614,8 @@ function asciiOrHexToBytes(keyHex: string): Uint8Array {
 
 /**
  * Best-effort recovery of the value bytes from an `ElementView`. We only need
- * this for `KV(key, value)` and `KVCount(key, value, count)` — the variants
- * where the proof carries the full value AND we need to recompute its hash.
+ * this for variants where the proof carries the full value AND we need to
+ * recompute its hash (KV, KVCount, KVSum, KVCountSum).
  *
  * For Tree-flavoured elements the IR doesn't carry the full bincode bytes;
  * those paths use a pre-computed value_hash from the proof and never call

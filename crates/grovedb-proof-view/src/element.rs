@@ -103,6 +103,30 @@ fn element_to_view(elem: &Element) -> ElementView {
         Element::NotSummed(inner) => ElementView::NotSummed {
             inner: Box::new(element_to_view(inner)),
         },
+        Element::NotCountedOrSummed(inner) => ElementView::NotCountedOrSummed {
+            inner: Box::new(element_to_view(inner)),
+        },
+        Element::ReferenceWithSumItem(rp, max_hop, sum, flags) => {
+            ElementView::ReferenceWithSumItem {
+                reference: reference_to_view(rp),
+                max_hop: *max_hop,
+                sum: *sum,
+                flags: flags_to_hex(flags),
+            }
+        }
+        Element::ProvableSumTree(merk_root, sum, flags) => ElementView::ProvableSumTree {
+            merk_root: merk_root.as_deref().map(hex::encode),
+            sum: *sum,
+            flags: flags_to_hex(flags),
+        },
+        Element::ProvableCountProvableSumTree(merk_root, count, sum, flags) => {
+            ElementView::ProvableCountProvableSumTree {
+                merk_root: merk_root.as_deref().map(hex::encode),
+                count: *count,
+                sum: *sum,
+                flags: flags_to_hex(flags),
+            }
+        }
     }
 }
 

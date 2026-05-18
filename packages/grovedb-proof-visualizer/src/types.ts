@@ -95,6 +95,54 @@ export type MerkNodeView =
       left_child_hash: string;
       right_child_hash: string;
       count: number;
+    }
+  | { kind: "kv_sum"; key: DisplayKey; value: ElementView; sum: number }
+  | { kind: "kv_hash_sum"; kv_hash: string; sum: number }
+  | {
+      kind: "kv_ref_value_hash_sum";
+      key: DisplayKey;
+      value: ElementView;
+      value_hash: string;
+      sum: number;
+    }
+  | { kind: "kv_digest_sum"; key: DisplayKey; value_hash: string; sum: number }
+  | {
+      kind: "hash_with_sum";
+      kv_hash: string;
+      left_child_hash: string;
+      right_child_hash: string;
+      sum: number;
+    }
+  | {
+      kind: "kv_count_sum";
+      key: DisplayKey;
+      value: ElementView;
+      count: number;
+      sum: number;
+    }
+  | { kind: "kv_hash_count_sum"; kv_hash: string; count: number; sum: number }
+  | {
+      kind: "kv_ref_value_hash_count_sum";
+      key: DisplayKey;
+      value: ElementView;
+      value_hash: string;
+      count: number;
+      sum: number;
+    }
+  | {
+      kind: "kv_digest_count_sum";
+      key: DisplayKey;
+      value_hash: string;
+      count: number;
+      sum: number;
+    }
+  | {
+      kind: "hash_with_count_and_sum";
+      kv_hash: string;
+      left_child_hash: string;
+      right_child_hash: string;
+      count: number;
+      sum: number;
     };
 
 export type FeatureTypeView =
@@ -104,7 +152,13 @@ export type FeatureTypeView =
   | { kind: "counted_merk_node"; count: number }
   | { kind: "counted_summed_merk_node"; count: number; sum: number }
   | { kind: "provable_counted_merk_node"; count: number }
-  | { kind: "provable_counted_summed_merk_node"; count: number; sum: number };
+  | { kind: "provable_counted_summed_merk_node"; count: number; sum: number }
+  | { kind: "provable_summed_merk_node"; sum: number }
+  | {
+      kind: "provable_counted_and_provable_summed_merk_node";
+      count: number;
+      sum: number;
+    };
 
 export type ElementView =
   | { kind: "tree"; merk_root: string | null; flags: string | null }
@@ -176,6 +230,27 @@ export type ElementView =
     }
   | { kind: "non_counted"; inner: ElementView }
   | { kind: "not_summed"; inner: ElementView }
+  | { kind: "not_counted_or_summed"; inner: ElementView }
+  | {
+      kind: "reference_with_sum_item";
+      reference: ReferenceView;
+      max_hop: number | null;
+      sum: number;
+      flags: string | null;
+    }
+  | {
+      kind: "provable_sum_tree";
+      merk_root: string | null;
+      sum: number;
+      flags: string | null;
+    }
+  | {
+      kind: "provable_count_provable_sum_tree";
+      merk_root: string | null;
+      count: number;
+      sum: number;
+      flags: string | null;
+    }
   | { kind: "unknown"; raw_hex: string; error: string };
 
 export type ReferenceView =

@@ -424,6 +424,134 @@ fn parse_text_handles_book_query3_verbatim() {
 }
 
 #[test]
+fn parse_text_handles_new_sum_node_variants() {
+    // Exercise the ProvableSumTree + ProvableCountProvableSumTree node-side
+    // additions: KVSum, KVHashSum, HashWithSum, KVCountSum, KVHashCountSum,
+    // HashWithCountAndSum, plus the new ProvableSummedMerkNode +
+    // ProvableCountedAndProvableSummedMerkNode feature types.
+    let elem = grovedb::Element::Item(b"v".to_vec(), None);
+    let ops = vec![
+        Op::Push(Node::KVSum(b"k1".to_vec(), enc_elem(&elem), 100)),
+        Op::Push(Node::KVHashSum(h(0xaa), -50)),
+        Op::Parent,
+        Op::Push(Node::HashWithSum(h(0xbb), h(0xcc), h(0xdd), 250)),
+        Op::Child,
+        Op::Push(Node::KVCountSum(b"k2".to_vec(), enc_elem(&elem), 5, 7)),
+        Op::Parent,
+        Op::Push(Node::HashWithCountAndSum(
+            h(0xee),
+            h(0xff),
+            h(0x11),
+            99,
+            -99,
+        )),
+        Op::Child,
+    ];
+    let layer = GLayerProof {
+        merk_proof: ProofBytes::Merk(enc_ops(&ops)),
+        lower_layers: BTreeMap::new(),
+    };
+    let bytes = encode_v1(layer);
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
+    let text = format!("{}", proof);
+    let v_text = parse_text(&text).expect("parse new sum variants");
+    let v_bytes = parse_bytes(&bytes).unwrap();
+    assert_eq!(v_text.layers.len(), v_bytes.layers.len());
+    let bt = v_text.layers[0].binary_tree.as_ref().unwrap();
+    assert_eq!(
+        bt.nodes.len(),
+        v_bytes.layers[0].binary_tree.as_ref().unwrap().nodes.len()
+    );
+
+    // Spot-check: the KVCountSum carries count=5, sum=7.
+    let kvcs = bt
+        .nodes
+        .iter()
+        .find_map(|n| match &n.view {
+            MerkNodeView::KvCountSum { count, sum, .. } => Some((*count, *sum)),
+            _ => None,
+        })
+        .expect("KVCountSum present");
+    assert_eq!(kvcs, (5, 7));
+    let hwcs = bt
+        .nodes
+        .iter()
+        .find_map(|n| match &n.view {
+            MerkNodeView::HashWithCountAndSum { count, sum, .. } => Some((*count, *sum)),
+            _ => None,
+        })
+        .expect("HashWithCountAndSum present");
+    assert_eq!(hwcs, (99, -99));
+}
+
+#[test]
+fn parse_text_handles_new_element_variants() {
+    // ProvableSumTree, ProvableCountProvableSumTree, NotCountedOrSummed wrapper.
+    let psum = grovedb::Element::ProvableSumTree(None, 123, None);
+    let pcps = grovedb::Element::ProvableCountProvableSumTree(None, 10, 200, None);
+    let ncos =
+        grovedb::Element::NotCountedOrSummed(Box::new(grovedb::Element::SumTree(None, 5, None)));
+    let ops = vec![
+        Op::Push(Node::KVValueHash(b"a".to_vec(), enc_elem(&psum), h(0x01))),
+        Op::Push(Node::KVValueHash(b"b".to_vec(), enc_elem(&pcps), h(0x02))),
+        Op::Parent,
+        Op::Push(Node::KVValueHash(b"c".to_vec(), enc_elem(&ncos), h(0x03))),
+        Op::Child,
+    ];
+    let layer = GLayerProof {
+        merk_proof: ProofBytes::Merk(enc_ops(&ops)),
+        lower_layers: BTreeMap::new(),
+    };
+    let bytes = encode_v1(layer);
+    let v_bytes = parse_bytes(&bytes).unwrap();
+    let proof: GroveDBProof =
+        bincode::decode_from_slice(&bytes, standard().with_big_endian().with_no_limit())
+            .unwrap()
+            .0;
+    let text = format!("{}", proof);
+    let v_text = parse_text(&text).expect("parse new element variants");
+
+    // Verify each new variant was extracted at least once (in either source).
+    let mut found_psum = false;
+    let mut found_pcps = false;
+    let mut found_ncos = false;
+    for view in [&v_bytes, &v_text] {
+        for layer in &view.layers {
+            for node in layer
+                .binary_tree
+                .as_ref()
+                .map(|t| &t.nodes)
+                .unwrap_or(&vec![])
+            {
+                if let MerkNodeView::KvValueHash { value, .. } = &node.view {
+                    match value {
+                        ElementView::ProvableSumTree { sum, .. } => {
+                            assert_eq!(*sum, 123);
+                            found_psum = true;
+                        }
+                        ElementView::ProvableCountProvableSumTree { count, sum, .. } => {
+                            assert_eq!((*count, *sum), (10, 200));
+                            found_pcps = true;
+                        }
+                        ElementView::NotCountedOrSummed { inner } => {
+                            assert!(matches!(**inner, ElementView::SumTree { .. }));
+                            found_ncos = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    assert!(found_psum, "ProvableSumTree should appear");
+    assert!(found_pcps, "ProvableCountProvableSumTree should appear");
+    assert!(found_ncos, "NotCountedOrSummed wrapper should appear");
+}
+
+#[test]
 fn parse_text_handles_hex_keys() {
     let elem = grovedb::Element::Tree(None, None);
     let key = vec![0xff, 0x00, 0xab];

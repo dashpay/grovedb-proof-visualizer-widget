@@ -401,7 +401,205 @@ fn parse_op(parser: &mut Parser) -> Result<ParsedOp, ParseError> {
 
 fn parse_node(parser: &mut Parser) -> Result<MerkNodeView, ParseError> {
     // Order matters: longer keywords first so e.g. `KVValueHashFeatureTypeWithChildHash`
-    // doesn't get short-circuited by `KVValueHashFeatureType`.
+    // doesn't get short-circuited by `KVValueHashFeatureType`. The sum/count-sum
+    // variants must precede their count-only / sum-only siblings too —
+    // `KVDigestCountSum` before `KVDigestCount` before `KVDigestSum` before
+    // `KVDigest`, etc.
+    if parser.consume_keyword("HashWithCountAndSum") {
+        // Named-field form: HashWithCountAndSum(kv_hash=…, left=…, right=…, count=N, sum=N)
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        consume_named_prefix(parser, "kv_hash")?;
+        let kv_hash = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "left")?;
+        let l = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "right")?;
+        let r = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "count")?;
+        let count = parse_u64(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::HashWithCountAndSum {
+            kv_hash,
+            left_child_hash: l,
+            right_child_hash: r,
+            count,
+            sum,
+        });
+    }
+    if parser.consume_keyword("HashWithSum") {
+        // Named-field form: HashWithSum(kv_hash=…, left=…, right=…, sum=N)
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        consume_named_prefix(parser, "kv_hash")?;
+        let kv_hash = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "left")?;
+        let l = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "right")?;
+        let r = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::HashWithSum {
+            kv_hash,
+            left_child_hash: l,
+            right_child_hash: r,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVRefValueHashCountSum") {
+        // Named count/sum: KVRefValueHashCountSum(key, value, HASH[…], count=N, sum=N)
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value = parse_element(parser)?;
+        comma(parser)?;
+        let value_hash = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "count")?;
+        let count = parse_u64(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvRefValueHashCountSum {
+            key,
+            value,
+            value_hash,
+            count,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVDigestCountSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value_hash = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "count")?;
+        let count = parse_u64(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvDigestCountSum {
+            key,
+            value_hash,
+            count,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVHashCountSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let kv_hash = parse_hash(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "count")?;
+        let count = parse_u64(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvHashCountSum {
+            kv_hash,
+            count,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVCountSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value = parse_element(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "count")?;
+        let count = parse_u64(parser)?;
+        comma(parser)?;
+        consume_named_prefix(parser, "sum")?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvCountSum {
+            key,
+            value,
+            count,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVRefValueHashSum") {
+        // Positional: KVRefValueHashSum(key, value, HASH[…], sum)
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value = parse_element(parser)?;
+        comma(parser)?;
+        let value_hash = parse_hash(parser)?;
+        comma(parser)?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvRefValueHashSum {
+            key,
+            value,
+            value_hash,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVDigestSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value_hash = parse_hash(parser)?;
+        comma(parser)?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvDigestSum {
+            key,
+            value_hash,
+            sum,
+        });
+    }
+    if parser.consume_keyword("KVHashSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let kv_hash = parse_hash(parser)?;
+        comma(parser)?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvHashSum { kv_hash, sum });
+    }
+    if parser.consume_keyword("KVSum") {
+        parser.skip_whitespace();
+        parser.expect_char('(')?;
+        let key = DisplayKey::from_bytes(&parse_key_bytes(parser)?);
+        comma(parser)?;
+        let value = parse_element(parser)?;
+        comma(parser)?;
+        let sum = parse_i64(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(MerkNodeView::KvSum { key, value, sum });
+    }
     if parser.consume_keyword("KVValueHashFeatureTypeWithChildHash") {
         parser.skip_whitespace();
         parser.expect_char('(')?;
@@ -680,6 +878,13 @@ fn parse_feature_type(parser: &mut Parser) -> Result<FeatureTypeView, ParseError
         let c = parse_u64(parser)?;
         parser.expect_char(')')?;
         Ok(FeatureTypeView::CountedMerkNode { count: c })
+    } else if parser.consume_keyword("ProvableCountedAndProvableSummedMerkNode") {
+        parser.expect_char('(')?;
+        let c = parse_u64(parser)?;
+        comma(parser)?;
+        let s = parse_i64(parser)?;
+        parser.expect_char(')')?;
+        Ok(FeatureTypeView::ProvableCountedAndProvableSummedMerkNode { count: c, sum: s })
     } else if parser.consume_keyword("ProvableCountedSummedMerkNode") {
         parser.expect_char('(')?;
         let c = parse_u64(parser)?;
@@ -692,6 +897,11 @@ fn parse_feature_type(parser: &mut Parser) -> Result<FeatureTypeView, ParseError
         let c = parse_u64(parser)?;
         parser.expect_char(')')?;
         Ok(FeatureTypeView::ProvableCountedMerkNode { count: c })
+    } else if parser.consume_keyword("ProvableSummedMerkNode") {
+        parser.expect_char('(')?;
+        let s = parse_i64(parser)?;
+        parser.expect_char(')')?;
+        Ok(FeatureTypeView::ProvableSummedMerkNode { sum: s })
     } else {
         Err(parser.err("expected a TreeFeatureType"))
     }
@@ -702,6 +912,28 @@ fn parse_feature_type(parser: &mut Parser) -> Result<FeatureTypeView, ParseError
 fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
     parser.skip_whitespace();
     // Try the longest tags first.
+    if parser.consume_keyword("ProvableCountProvableSumTree") {
+        let (root, args) = read_paren_args(parser)?;
+        let count = parse_count_arg(&args, 0, parser)?;
+        let sum = parse_sum_arg(&args, 1, parser)?;
+        let flags = extract_flags(&args);
+        return Ok(ElementView::ProvableCountProvableSumTree {
+            merk_root: root,
+            count,
+            sum,
+            flags,
+        });
+    }
+    if parser.consume_keyword("ProvableSumTree") {
+        let (root, args) = read_paren_args(parser)?;
+        let sum = parse_sum_arg(&args, 0, parser)?;
+        let flags = extract_flags(&args);
+        return Ok(ElementView::ProvableSumTree {
+            merk_root: root,
+            sum,
+            flags,
+        });
+    }
     if parser.consume_keyword("ProvableCountSumTree") {
         let (root, args) = read_paren_args(parser)?;
         let count = parse_count_arg(&args, 0, parser)?;
@@ -870,6 +1102,15 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
             flags,
         });
     }
+    if parser.consume_keyword("NotCountedOrSummed") {
+        parser.expect_char('(')?;
+        let inner = parse_element(parser)?;
+        parser.skip_whitespace();
+        parser.expect_char(')')?;
+        return Ok(ElementView::NotCountedOrSummed {
+            inner: Box::new(inner),
+        });
+    }
     if parser.consume_keyword("NonCounted") {
         parser.expect_char('(')?;
         let inner = parse_element(parser)?;
@@ -886,6 +1127,16 @@ fn parse_element(parser: &mut Parser) -> Result<ElementView, ParseError> {
         parser.expect_char(')')?;
         return Ok(ElementView::NotSummed {
             inner: Box::new(inner),
+        });
+    }
+    if parser.consume_keyword("ReferenceWithSumItem") {
+        // `ReferenceWithSumItem(<path>, max_hop: <h>, <sum>, [flags: ...])`
+        // We don't try to round-trip the reference details, just surface as
+        // Unknown — but we DO extract the sum.
+        let body = read_paren_body(parser)?;
+        return Ok(ElementView::Unknown {
+            raw_hex: format!("ReferenceWithSumItem({body})"),
+            error: "ReferenceWithSumItem text-parse not implemented".into(),
         });
     }
     if parser.consume_keyword("Reference") {

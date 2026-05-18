@@ -275,6 +275,63 @@ pub(crate) fn merk_node_to_view(node: &Node) -> Result<MerkNodeView, ParseError>
             right_child_hash: hex::encode(r),
             count: *c,
         },
+        Node::KVSum(k, v, s) => MerkNodeView::KvSum {
+            key: DisplayKey::from_bytes(k),
+            value: decode_element_view(v),
+            sum: *s,
+        },
+        Node::KVHashSum(h, s) => MerkNodeView::KvHashSum {
+            kv_hash: hex::encode(h),
+            sum: *s,
+        },
+        Node::KVRefValueHashSum(k, v, vh, s) => MerkNodeView::KvRefValueHashSum {
+            key: DisplayKey::from_bytes(k),
+            value: decode_element_view(v),
+            value_hash: hex::encode(vh),
+            sum: *s,
+        },
+        Node::KVDigestSum(k, vh, s) => MerkNodeView::KvDigestSum {
+            key: DisplayKey::from_bytes(k),
+            value_hash: hex::encode(vh),
+            sum: *s,
+        },
+        Node::HashWithSum(kv, l, r, s) => MerkNodeView::HashWithSum {
+            kv_hash: hex::encode(kv),
+            left_child_hash: hex::encode(l),
+            right_child_hash: hex::encode(r),
+            sum: *s,
+        },
+        Node::KVCountSum(k, v, c, s) => MerkNodeView::KvCountSum {
+            key: DisplayKey::from_bytes(k),
+            value: decode_element_view(v),
+            count: *c,
+            sum: *s,
+        },
+        Node::KVHashCountSum(h, c, s) => MerkNodeView::KvHashCountSum {
+            kv_hash: hex::encode(h),
+            count: *c,
+            sum: *s,
+        },
+        Node::KVRefValueHashCountSum(k, v, vh, c, s) => MerkNodeView::KvRefValueHashCountSum {
+            key: DisplayKey::from_bytes(k),
+            value: decode_element_view(v),
+            value_hash: hex::encode(vh),
+            count: *c,
+            sum: *s,
+        },
+        Node::KVDigestCountSum(k, vh, c, s) => MerkNodeView::KvDigestCountSum {
+            key: DisplayKey::from_bytes(k),
+            value_hash: hex::encode(vh),
+            count: *c,
+            sum: *s,
+        },
+        Node::HashWithCountAndSum(kv, l, r, c, s) => MerkNodeView::HashWithCountAndSum {
+            kv_hash: hex::encode(kv),
+            left_child_hash: hex::encode(l),
+            right_child_hash: hex::encode(r),
+            count: *c,
+            sum: *s,
+        },
     })
 }
 
@@ -294,6 +351,12 @@ fn feature_to_view(ft: &TreeFeatureType) -> FeatureTypeView {
         }
         TreeFeatureType::ProvableCountedSummedMerkNode(c, s) => {
             FeatureTypeView::ProvableCountedSummedMerkNode { count: *c, sum: *s }
+        }
+        TreeFeatureType::ProvableSummedMerkNode(s) => {
+            FeatureTypeView::ProvableSummedMerkNode { sum: *s }
+        }
+        TreeFeatureType::ProvableCountedAndProvableSummedMerkNode(c, s) => {
+            FeatureTypeView::ProvableCountedAndProvableSummedMerkNode { count: *c, sum: *s }
         }
     }
 }
@@ -391,7 +454,13 @@ fn find_node_with_key(tree: &MerkBinaryTree, key: &[u8]) -> Option<usize> {
             | MerkNodeView::KvRefValueHashCount { key: k, .. }
             | MerkNodeView::KvDigest { key: k, .. }
             | MerkNodeView::KvDigestCount { key: k, .. }
-            | MerkNodeView::KvValueHashFeatureTypeWithChildHash { key: k, .. } => k.hex == key_hex,
+            | MerkNodeView::KvValueHashFeatureTypeWithChildHash { key: k, .. }
+            | MerkNodeView::KvSum { key: k, .. }
+            | MerkNodeView::KvRefValueHashSum { key: k, .. }
+            | MerkNodeView::KvDigestSum { key: k, .. }
+            | MerkNodeView::KvCountSum { key: k, .. }
+            | MerkNodeView::KvRefValueHashCountSum { key: k, .. }
+            | MerkNodeView::KvDigestCountSum { key: k, .. } => k.hex == key_hex,
             _ => false,
         };
         if matches {

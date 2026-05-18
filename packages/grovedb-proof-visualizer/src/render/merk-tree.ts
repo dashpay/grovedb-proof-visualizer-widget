@@ -140,6 +140,26 @@ function describeForTooltip(view: MerkNodeView): string {
       return `KVDigestCount key=${view.key.display}\ncount=${view.count}\nvalue_hash=${view.value_hash}`;
     case "hash_with_count":
       return `HashWithCount kv_hash=${view.kv_hash}\nleft=${view.left_child_hash}\nright=${view.right_child_hash}\ncount=${view.count}`;
+    case "kv_sum":
+      return `KVSum key=${view.key.display}\n${describeElement(view.value)}\nsum=${view.sum}`;
+    case "kv_hash_sum":
+      return `KVHashSum kv_hash=${view.kv_hash}\nsum=${view.sum}`;
+    case "kv_ref_value_hash_sum":
+      return `KVRefValueHashSum key=${view.key.display}\nvalue_hash=${view.value_hash}\nsum=${view.sum}`;
+    case "kv_digest_sum":
+      return `KVDigestSum key=${view.key.display}\nvalue_hash=${view.value_hash}\nsum=${view.sum}`;
+    case "hash_with_sum":
+      return `HashWithSum kv_hash=${view.kv_hash}\nleft=${view.left_child_hash}\nright=${view.right_child_hash}\nsum=${view.sum}`;
+    case "kv_count_sum":
+      return `KVCountSum key=${view.key.display}\n${describeElement(view.value)}\ncount=${view.count}\nsum=${view.sum}`;
+    case "kv_hash_count_sum":
+      return `KVHashCountSum kv_hash=${view.kv_hash}\ncount=${view.count}\nsum=${view.sum}`;
+    case "kv_ref_value_hash_count_sum":
+      return `KVRefValueHashCountSum key=${view.key.display}\nvalue_hash=${view.value_hash}\ncount=${view.count}\nsum=${view.sum}`;
+    case "kv_digest_count_sum":
+      return `KVDigestCountSum key=${view.key.display}\nvalue_hash=${view.value_hash}\ncount=${view.count}\nsum=${view.sum}`;
+    case "hash_with_count_and_sum":
+      return `HashWithCountAndSum kv_hash=${view.kv_hash}\nleft=${view.left_child_hash}\nright=${view.right_child_hash}\ncount=${view.count}\nsum=${view.sum}`;
   }
 }
 

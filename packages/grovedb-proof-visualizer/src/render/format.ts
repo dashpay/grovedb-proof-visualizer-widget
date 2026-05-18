@@ -55,6 +55,14 @@ export function elementShort(e: ElementView): string {
       return `NonCounted(${elementShort(e.inner)})`;
     case "not_summed":
       return `NotSummed(${elementShort(e.inner)})`;
+    case "not_counted_or_summed":
+      return `NotCountedOrSummed(${elementShort(e.inner)})`;
+    case "reference_with_sum_item":
+      return `RefWithSum(sum=${e.sum})`;
+    case "provable_sum_tree":
+      return `ProvableSumTree sum=${e.sum}`;
+    case "provable_count_provable_sum_tree":
+      return `ProvableCountProvableSumTree count=${e.count.toLocaleString()} sum=${e.sum}`;
     case "unknown":
       return `Unknown(${shortBytes(e.raw_hex, 4)})`;
   }
@@ -79,14 +87,23 @@ export function elementFields(e: ElementView): Array<[string, string]> {
       break;
     case "count_sum_tree":
     case "provable_count_sum_tree":
+    case "provable_count_provable_sum_tree":
       if (e.merk_root) fields.push(["merk_root", e.merk_root]);
       fields.push(["count", String(e.count)], ["sum", String(e.sum)]);
+      break;
+    case "provable_sum_tree":
+      if (e.merk_root) fields.push(["merk_root", e.merk_root]);
+      fields.push(["sum", String(e.sum)]);
+      break;
+    case "reference_with_sum_item":
+      fields.push(["sum", String(e.sum)]);
       break;
     case "item":
       fields.push(["value", e.value]);
       break;
     case "non_counted":
     case "not_summed":
+    case "not_counted_or_summed":
       fields.push(["inner", elementShort(e.inner)]);
       break;
     default:
@@ -112,6 +129,10 @@ export function featureTypeShort(ft: FeatureTypeView): string {
       return `ProvCount(${ft.count})`;
     case "provable_counted_summed_merk_node":
       return `ProvCount(${ft.count})+Sum(${ft.sum})`;
+    case "provable_summed_merk_node":
+      return `ProvSum(${ft.sum})`;
+    case "provable_counted_and_provable_summed_merk_node":
+      return `ProvCount(${ft.count})+ProvSum(${ft.sum})`;
   }
 }
 
@@ -156,6 +177,50 @@ export function nodeBriefLabel(view: MerkNodeView): { primary: string; secondary
         primary: `KVHash[${shortBytes(view.kv_hash)}]`,
         secondary: `count=${view.count}`,
       };
+    case "kv_sum":
+      return {
+        primary: keyLabel(view.key),
+        secondary: `${elementShort(view.value)} sum=${view.sum}`,
+      };
+    case "kv_hash_sum":
+      return { primary: `KVHash[${shortBytes(view.kv_hash)}]`, secondary: `sum=${view.sum}` };
+    case "kv_ref_value_hash_sum":
+      return {
+        primary: keyLabel(view.key),
+        secondary: `${elementShort(view.value)} sum=${view.sum}`,
+      };
+    case "kv_digest_sum":
+      return { primary: keyLabel(view.key), secondary: `sum=${view.sum}` };
+    case "hash_with_sum":
+      return {
+        primary: `KVHash[${shortBytes(view.kv_hash)}]`,
+        secondary: `sum=${view.sum}`,
+      };
+    case "kv_count_sum":
+      return {
+        primary: keyLabel(view.key),
+        secondary: `${elementShort(view.value)} +${view.count}/Σ${view.sum}`,
+      };
+    case "kv_hash_count_sum":
+      return {
+        primary: `KVHash[${shortBytes(view.kv_hash)}]`,
+        secondary: `count=${view.count} sum=${view.sum}`,
+      };
+    case "kv_ref_value_hash_count_sum":
+      return {
+        primary: keyLabel(view.key),
+        secondary: `${elementShort(view.value)} count=${view.count} sum=${view.sum}`,
+      };
+    case "kv_digest_count_sum":
+      return {
+        primary: keyLabel(view.key),
+        secondary: `count=${view.count} sum=${view.sum}`,
+      };
+    case "hash_with_count_and_sum":
+      return {
+        primary: `KVHash[${shortBytes(view.kv_hash)}]`,
+        secondary: `count=${view.count} sum=${view.sum}`,
+      };
   }
 }
 
@@ -167,7 +232,7 @@ export function shortBytes(hex: string, prefix = 4): string {
 /**
  * Classify a node for styling:
  *   - `target`: the queried/leaf payload (KvValueHashFeatureTypeWithChildHash,
- *     KvValueHash with a non-Tree value, or a leaf KvCount)
+ *     KvValueHash with a non-Tree value, or a leaf KvCount/KvSum/etc.)
  *   - `descend`: a key on the descent path (KvValueHash with a Tree value)
  *   - `internal`: an internal kv-hash (no value revealed)
  *   - `opaque`: just a hash, no key
@@ -178,7 +243,11 @@ export function classifyNode(view: MerkNodeView): "target" | "descend" | "intern
       return "opaque";
     case "kv_hash":
     case "kv_hash_count":
+    case "kv_hash_sum":
+    case "kv_hash_count_sum":
     case "hash_with_count":
+    case "hash_with_sum":
+    case "hash_with_count_and_sum":
       return "internal";
     case "kv_value_hash":
     case "kv":
@@ -187,9 +256,15 @@ export function classifyNode(view: MerkNodeView): "target" | "descend" | "intern
       return isTreeValued(view) ? "descend" : "target";
     case "kv_value_hash_feature_type_with_child_hash":
     case "kv_count":
+    case "kv_sum":
+    case "kv_count_sum":
     case "kv_ref_value_hash_count":
+    case "kv_ref_value_hash_sum":
+    case "kv_ref_value_hash_count_sum":
     case "kv_digest":
     case "kv_digest_count":
+    case "kv_digest_sum":
+    case "kv_digest_count_sum":
       return "target";
   }
 }
@@ -211,6 +286,8 @@ function isTreeValued(view: MerkNodeView): boolean {
     e.kind === "count_tree" ||
     e.kind === "count_sum_tree" ||
     e.kind === "provable_count_tree" ||
-    e.kind === "provable_count_sum_tree"
+    e.kind === "provable_count_sum_tree" ||
+    e.kind === "provable_sum_tree" ||
+    e.kind === "provable_count_provable_sum_tree"
   );
 }

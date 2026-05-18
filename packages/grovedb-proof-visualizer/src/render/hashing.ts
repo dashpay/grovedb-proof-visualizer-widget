@@ -79,6 +79,35 @@ export function nodeHashWithCount(
   return blake3(concat(kvHash, left, right, u64BE(count)));
 }
 
+/** `node_hash_with_sum(kv_hash, left, right, sum) = blake3(kv_hash || left || right || i64_be(sum))` */
+export function nodeHashWithSum(
+  kvHash: Hash32,
+  left: Hash32,
+  right: Hash32,
+  sum: bigint | number,
+): Hash32 {
+  return blake3(concat(kvHash, left, right, i64BE(sum)));
+}
+
+/** `node_hash_with_count_and_sum(kv_hash, left, right, count, sum) = blake3(kv_hash || left || right || u64_be(count) || i64_be(sum))` */
+export function nodeHashWithCountAndSum(
+  kvHash: Hash32,
+  left: Hash32,
+  right: Hash32,
+  count: bigint | number,
+  sum: bigint | number,
+): Hash32 {
+  return blake3(concat(kvHash, left, right, u64BE(count), i64BE(sum)));
+}
+
+/** Big-endian 8-byte encoding of an i64 (two's complement on negatives). */
+export function i64BE(n: bigint | number): Uint8Array {
+  const v = typeof n === "bigint" ? n : BigInt(n);
+  const out = new Uint8Array(8);
+  new DataView(out.buffer).setBigInt64(0, v, false);
+  return out;
+}
+
 /** `combine_hash(a, b) = blake3(a || b)` */
 export function combineHash(a: Hash32, b: Hash32): Hash32 {
   return blake3(concat(a, b));

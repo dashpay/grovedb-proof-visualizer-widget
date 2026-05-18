@@ -183,6 +183,73 @@ pub enum MerkNodeView {
         right_child_hash: Hex32,
         count: u64,
     },
+    /// `ProvableSumTree` queried Item.
+    KvSum {
+        key: DisplayKey,
+        value: ElementView,
+        sum: i64,
+    },
+    /// `ProvableSumTree` non-queried internal.
+    KvHashSum {
+        kv_hash: Hex32,
+        sum: i64,
+    },
+    /// `ProvableSumTree` queried Reference.
+    KvRefValueHashSum {
+        key: DisplayKey,
+        value: ElementView,
+        value_hash: Hex32,
+        sum: i64,
+    },
+    /// `ProvableSumTree` boundary key.
+    KvDigestSum {
+        key: DisplayKey,
+        value_hash: Hex32,
+        sum: i64,
+    },
+    /// Compressed in-range subtree for `AggregateSumOnRange`.
+    HashWithSum {
+        kv_hash: Hex32,
+        left_child_hash: Hex32,
+        right_child_hash: Hex32,
+        sum: i64,
+    },
+    /// `ProvableCountProvableSumTree` queried Item.
+    KvCountSum {
+        key: DisplayKey,
+        value: ElementView,
+        count: u64,
+        sum: i64,
+    },
+    /// `ProvableCountProvableSumTree` non-queried internal.
+    KvHashCountSum {
+        kv_hash: Hex32,
+        count: u64,
+        sum: i64,
+    },
+    /// `ProvableCountProvableSumTree` queried Reference.
+    KvRefValueHashCountSum {
+        key: DisplayKey,
+        value: ElementView,
+        value_hash: Hex32,
+        count: u64,
+        sum: i64,
+    },
+    /// `ProvableCountProvableSumTree` boundary key.
+    KvDigestCountSum {
+        key: DisplayKey,
+        value_hash: Hex32,
+        count: u64,
+        sum: i64,
+    },
+    /// Compressed in-range subtree for combined count+sum (`ProvableCountProvableSumTree`).
+    HashWithCountAndSum {
+        kv_hash: Hex32,
+        left_child_hash: Hex32,
+        right_child_hash: Hex32,
+        count: u64,
+        sum: i64,
+    },
 }
 
 /// Mirrors `grovedb_query::proofs::TreeFeatureType`.
@@ -190,12 +257,36 @@ pub enum MerkNodeView {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum FeatureTypeView {
     BasicMerkNode,
-    SummedMerkNode { sum: i64 },
-    BigSummedMerkNode { sum: String, /* i128 as decimal */ },
-    CountedMerkNode { count: u64 },
-    CountedSummedMerkNode { count: u64, sum: i64 },
-    ProvableCountedMerkNode { count: u64 },
-    ProvableCountedSummedMerkNode { count: u64, sum: i64 },
+    SummedMerkNode {
+        sum: i64,
+    },
+    BigSummedMerkNode {
+        sum: String, /* i128 as decimal */
+    },
+    CountedMerkNode {
+        count: u64,
+    },
+    CountedSummedMerkNode {
+        count: u64,
+        sum: i64,
+    },
+    ProvableCountedMerkNode {
+        count: u64,
+    },
+    ProvableCountedSummedMerkNode {
+        count: u64,
+        sum: i64,
+    },
+    /// For `ProvableSumTree` nodes — sum is baked into node_hash_with_sum.
+    ProvableSummedMerkNode {
+        sum: i64,
+    },
+    /// For `ProvableCountProvableSumTree` nodes — both count and sum baked
+    /// into node_hash_with_count_and_sum.
+    ProvableCountedAndProvableSummedMerkNode {
+        count: u64,
+        sum: i64,
+    },
 }
 
 /// Decoded `Element` value attached to a node, in render-friendly form.
@@ -292,6 +383,35 @@ pub enum ElementView {
     /// property.
     NotSummed {
         inner: Box<ElementView>,
+    },
+    /// `NotCountedOrSummed(Box<Element>)` — combined wrapper that suppresses
+    /// both count AND sum propagation for sum-bearing trees.
+    NotCountedOrSummed {
+        inner: Box<ElementView>,
+    },
+    /// Reference that also carries an explicit `SumValue` aggregating into
+    /// a parent sum tree (even though the link itself is a Reference).
+    ReferenceWithSumItem {
+        reference: ReferenceView,
+        max_hop: Option<u8>,
+        sum: i64,
+        flags: Option<HexBytes>,
+    },
+    /// `Element::SumTree` variant where the per-node sum is baked into the
+    /// cryptographic state (mirrors ProvableCountTree but for sums).
+    ProvableSumTree {
+        merk_root: Option<HexBytes>,
+        sum: i64,
+        flags: Option<HexBytes>,
+    },
+    /// `Element::ProvableCountSumTree` variant where BOTH count AND sum are
+    /// baked into the cryptographic state (enables both AggregateCountOnRange
+    /// AND AggregateSumOnRange against the same tree).
+    ProvableCountProvableSumTree {
+        merk_root: Option<HexBytes>,
+        count: u64,
+        sum: i64,
+        flags: Option<HexBytes>,
     },
     /// Element bytes that we couldn't decode. Surfaced rather than dropped.
     Unknown {
