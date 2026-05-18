@@ -2,7 +2,7 @@
 
 import type { LayerView, MerkBinaryNode } from "../types.js";
 import { keyLabel } from "./format.js";
-import { layoutMerkTree, type MerkLayout } from "./merk-tree.js";
+import { layoutMerkTree, type MerkLayout, type NodeKeyResolver } from "./merk-tree.js";
 
 export interface RenderedLayer {
   /** The DOM element to insert. */
@@ -18,6 +18,16 @@ export interface RenderedLayer {
 export interface RenderLayerOptions {
   /** Called when the user clicks any node in this layer's binary tree. */
   onNodeClick?: (layer: LayerView, node: MerkBinaryNode) => void;
+  /** Called when the user right-clicks any node. The implementation should
+   *  open the key-format context menu and return after dispatching. */
+  onNodeContextMenu?: (
+    layer: LayerView,
+    node: MerkBinaryNode,
+    event: MouseEvent,
+  ) => void;
+  /** Per-node key formatter; returns undefined to fall back to the default
+   *  `key.display`. Used to apply the user's format overrides. */
+  resolveKeyDisplay?: NodeKeyResolver;
 }
 
 export function renderLayer(
@@ -58,30 +68,42 @@ export function renderLayer(
   let svgElement: SVGSVGElement;
 
   if (layer.binary_tree) {
-    layout = layoutMerkTree(layer.binary_tree);
+    layout = layoutMerkTree(layer.binary_tree, options.resolveKeyDisplay);
     svgElement = makeSvg(layout.width, layout.height, layout.svg);
     body.appendChild(svgElement);
 
     // Wire click → detail panel. Event delegation keeps things cheap for trees
     // with many nodes; the SVG markup tags each <g.gpv-node> with data-node-id.
+    const tree = layer.binary_tree;
+    const findNode = (e: Event): MerkBinaryNode | null => {
+      const target = (e.target as Element | null)?.closest?.(
+        "[data-node-id]",
+      ) as Element | null;
+      if (!target) return null;
+      const id = Number(target.getAttribute("data-node-id"));
+      return tree.nodes[id] ?? null;
+    };
     if (options.onNodeClick) {
-      const tree = layer.binary_tree;
       svgElement.addEventListener("click", (e) => {
-        const target = (e.target as Element | null)?.closest?.(
-          "[data-node-id]",
-        ) as Element | null;
-        if (!target) return;
-        const id = Number(target.getAttribute("data-node-id"));
-        const node = tree.nodes[id];
+        const node = findNode(e);
         if (!node) return;
         e.stopPropagation();
         options.onNodeClick!(layer, node);
       });
-      // Make all nodes look clickable.
-      svgElement.querySelectorAll<SVGElement>("[data-node-id]").forEach((el) => {
-        el.style.cursor = "pointer";
+    }
+    if (options.onNodeContextMenu) {
+      svgElement.addEventListener("contextmenu", (e) => {
+        const node = findNode(e);
+        if (!node) return;
+        e.preventDefault();
+        e.stopPropagation();
+        options.onNodeContextMenu!(layer, node, e);
       });
     }
+    // Make all nodes look clickable.
+    svgElement.querySelectorAll<SVGElement>("[data-node-id]").forEach((el) => {
+      el.style.cursor = "pointer";
+    });
   } else if (layer.opaque_summary) {
     const blob = document.createElement("div");
     blob.className = "gpv-opaque";
@@ -129,6 +151,56 @@ function renderSummaryHtml(layer: LayerView, totalLayers: number): string {
     <span class="gpv-layer-meta">${backing} — ${stats}</span>
     <span class="gpv-layer-descended">${descended}</span>
   `;
+}
+
+/**
+ * Update every node label + descent chip in a rendered layer in place,
+ * using the latest `resolveKeyDisplay`. Cheap — no layout recompute, no
+ * `<details>` state reset.
+ */
+export function refreshLayerKeyLabels(
+  rendered: RenderedLayer,
+  layer: LayerView,
+  resolveKeyDisplay: NodeKeyResolver,
+) {
+  const tree = layer.binary_tree;
+  if (tree) {
+    for (const node of tree.nodes) {
+      if (!nodeHasKey(node)) continue;
+      const replacement = resolveKeyDisplay(node.id);
+      if (replacement == null) continue;
+      const textEl = rendered.svgElement.querySelector(
+        `[data-node-id="${node.id}"] .gpv-node-primary`,
+      );
+      if (textEl) textEl.textContent = replacement;
+    }
+  }
+  // Descent chips render their parent-key as the affordance text; refresh them too.
+  for (const descent of layer.descents) {
+    const chip = rendered.element.querySelector(
+      `.gpv-descent-chip[data-to-layer="${descent.to_layer_id}"] code`,
+    );
+    if (!chip) continue;
+    const sourceNode = descent.from_node_id;
+    const formatted = sourceNode != null ? resolveKeyDisplay(sourceNode) : undefined;
+    chip.textContent = formatted ?? keyLabel(descent.from_key);
+  }
+}
+
+function nodeHasKey(node: MerkBinaryNode): boolean {
+  switch (node.view.kind) {
+    case "hash":
+    case "kv_hash":
+    case "kv_hash_count":
+    case "kv_hash_sum":
+    case "kv_hash_count_sum":
+    case "hash_with_count":
+    case "hash_with_sum":
+    case "hash_with_count_and_sum":
+      return false;
+    default:
+      return true;
+  }
 }
 
 function makeSvg(w: number, h: number, inner: string): SVGSVGElement {

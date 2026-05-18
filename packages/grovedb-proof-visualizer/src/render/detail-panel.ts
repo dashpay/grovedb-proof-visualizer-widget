@@ -6,6 +6,15 @@
 
 import type { LayerView, MerkBinaryNode } from "../types.js";
 import { hex } from "./hashing.js";
+import {
+  KEY_FORMAT_GROUPS,
+  KeyFormat,
+  KeyFormatScope,
+  formatKeyDisplay,
+  keyFormatEquals,
+  keyFormatId,
+  keyFormatLabel,
+} from "./key-format.js";
 import type { Recipe, RecipeInput, RecipeStep } from "./recipe.js";
 
 export interface DetailPanel {
@@ -22,7 +31,19 @@ export interface PanelContext {
   parentMatch?: { parentNodeId: number; side: "left" | "right" };
 }
 
-export function createDetailPanel(host: HTMLElement): DetailPanel {
+export interface DetailPanelHooks {
+  /** Called when the user picks a key format + scope from inside the panel. */
+  onKeyFormatPick?: (ctx: PanelContext, format: KeyFormat, scope: KeyFormatScope) => void;
+  /** Read the currently-applied format for the panel's node. */
+  getKeyFormat?: (ctx: PanelContext) => KeyFormat;
+  /** Raw key bytes for the panel's node, or null if the node has no key. */
+  getKeyBytes?: (ctx: PanelContext) => Uint8Array | null;
+}
+
+export function createDetailPanel(
+  host: HTMLElement,
+  hooks: DetailPanelHooks = {},
+): DetailPanel {
   const panel = document.createElement("aside");
   panel.className = "gpv-detail-panel";
   panel.setAttribute("role", "complementary");
@@ -45,7 +66,7 @@ export function createDetailPanel(host: HTMLElement): DetailPanel {
 
   const show = (ctx: PanelContext) => {
     panel.hidden = false;
-    panel.innerHTML = renderPanel(ctx);
+    panel.innerHTML = renderPanel(ctx, hooks);
     // wire close button
     panel
       .querySelector(".gpv-detail-close")
@@ -59,6 +80,17 @@ export function createDetailPanel(host: HTMLElement): DetailPanel {
         setTimeout(() => el.classList.remove("gpv-copied"), 800);
       });
     });
+    // wire key-format controls
+    const fmtSelect = panel.querySelector<HTMLSelectElement>(".gpv-detail-fmt-select");
+    const scopeSelect = panel.querySelector<HTMLSelectElement>(".gpv-detail-scope-select");
+    if (fmtSelect && scopeSelect && hooks.onKeyFormatPick) {
+      fmtSelect.addEventListener("change", () => {
+        const id = fmtSelect.value;
+        const fmt = findFormatById(id);
+        if (!fmt) return;
+        hooks.onKeyFormatPick!(ctx, fmt, scopeSelect.value as KeyFormatScope);
+      });
+    }
     // force a reflow so the open animation runs even on first show
     void panel.offsetWidth;
     panel.classList.add("gpv-detail-panel--open");
@@ -74,10 +106,23 @@ export function createDetailPanel(host: HTMLElement): DetailPanel {
   return { show, hide, isOpen: () => open };
 }
 
-function renderPanel(ctx: PanelContext): string {
+function renderPanel(ctx: PanelContext, hooks: DetailPanelHooks): string {
   const { layer, node, recipe, parentMatch } = ctx;
   const nodeKindLabel = node.view.kind;
-  const keyLabel = "key" in node.view ? `<code>${escapeHtml(node.view.key.display)}</code>` : "—";
+  const keyBytes = hooks.getKeyBytes?.(ctx) ?? null;
+  const activeFormat: KeyFormat = hooks.getKeyFormat?.(ctx) ?? { kind: "auto" };
+  const keyDisplay =
+    keyBytes != null
+      ? formatKeyDisplay(keyBytes, activeFormat).display
+      : "key" in node.view
+      ? node.view.key.display
+      : "—";
+  const keyLabel = `<code>${escapeHtml(keyDisplay)}</code>`;
+
+  const keyFormatRow =
+    hooks.onKeyFormatPick && keyBytes != null
+      ? renderKeyFormatRow(activeFormat)
+      : "";
 
   const parentMatchHtml = parentMatch
     ? `<div class="gpv-detail-section">
@@ -109,6 +154,8 @@ function renderPanel(ctx: PanelContext): string {
       </div>
       <button class="gpv-detail-close" aria-label="Close" title="Close (Esc)">×</button>
     </header>
+
+    ${keyFormatRow}
 
     ${notesHtml}
 
@@ -173,6 +220,43 @@ function renderHashRow(label: string, h: Uint8Array): string {
       <code class="gpv-detail-hash-value">${escapeHtml(hexStr)}</code>
     </div>
   `;
+}
+
+function renderKeyFormatRow(active: KeyFormat): string {
+  const optGroups = KEY_FORMAT_GROUPS.map((g) => {
+    const opts = g.formats
+      .map((f) => {
+        const sel = keyFormatEquals(f, active) ? " selected" : "";
+        return `<option value="${keyFormatId(f)}"${sel}>${escapeHtml(keyFormatLabel(f))}</option>`;
+      })
+      .join("");
+    return `<optgroup label="${escapeHtml(g.heading)}">${opts}</optgroup>`;
+  }).join("");
+  return `
+    <div class="gpv-detail-section">
+      <div class="gpv-detail-section-title">Interpret key as</div>
+      <div class="gpv-detail-fmtrow">
+        <select class="gpv-detail-fmt-select" aria-label="Key format">
+          ${optGroups}
+        </select>
+        <select class="gpv-detail-scope-select" aria-label="Apply scope">
+          <option value="node">Just this node</option>
+          <option value="layer">All nodes in this layer</option>
+          <option value="all">Whole proof</option>
+        </select>
+      </div>
+      <div class="gpv-detail-fmt-hint">
+        Tip: right-click any node for the same controls without opening this panel.
+      </div>
+    </div>
+  `;
+}
+
+function findFormatById(id: string): KeyFormat | null {
+  for (const group of KEY_FORMAT_GROUPS) {
+    for (const f of group.formats) if (keyFormatId(f) === id) return f;
+  }
+  return null;
 }
 
 function escapeHtml(s: string): string {

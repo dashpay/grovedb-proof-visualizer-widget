@@ -1,9 +1,19 @@
 // Public entry point.
 
 import { buildDescentOverlay } from "./render/descent.js";
-import { createDetailPanel } from "./render/detail-panel.js";
+import { createDetailPanel, type PanelContext } from "./render/detail-panel.js";
 import { NULL_HASH } from "./render/hashing.js";
-import { renderLayer, type RenderedLayer } from "./render/layer.js";
+import {
+  refreshLayerKeyLabels,
+  renderLayer,
+  type RenderedLayer,
+} from "./render/layer.js";
+import {
+  formatKeyDisplay,
+  hexToBytesLocal,
+  KeyOverrides,
+} from "./render/key-format.js";
+import { openKeyFormatMenu } from "./render/key-format-menu.js";
 import { computeAllNodeHashes, recipeFor } from "./render/recipe.js";
 import {
   resolveProofView,
@@ -92,24 +102,97 @@ function mountView(
     }
   }
 
-  const detail = createDetailPanel(host);
+  // Owned by this mount: keeps track of every per-node / per-layer / global
+  // key-format override the user has applied. Each `renderLayer` looks
+  // through `resolveKeyDisplay` so the SVG and detail panel always reflect
+  // the latest choice.
+  const overrides = new KeyOverrides();
 
-  const onNodeClick = (layer: LayerView, node: MerkBinaryNode) => {
+  /** Look up the display string for a node's key, applying any overrides.
+   *  Returns undefined when the format equals `auto` so the renderer can
+   *  fall back to the IR's pre-computed `key.display`. */
+  const resolveKeyDisplayFor =
+    (layer: LayerView) =>
+    (nodeId: number): string | undefined => {
+      const tree = layer.binary_tree;
+      if (!tree) return undefined;
+      const node = tree.nodes[nodeId];
+      if (!node) return undefined;
+      const view = node.view;
+      const keyHex = "key" in view ? view.key.hex : null;
+      if (!keyHex) return undefined;
+      const format = overrides.resolve(layer.layer_id, nodeId);
+      if (format.kind === "auto") return undefined; // keep IR-supplied display
+      return formatKeyDisplay(hexToBytesLocal(keyHex), format).display;
+    };
+
+  let currentPanelContext: PanelContext | null = null;
+  const detail = createDetailPanel(host, {
+    onKeyFormatPick: (ctx, format, scope) => {
+      overrides.set(scope, ctx.layer.layer_id, ctx.node.id, format);
+      refreshAllKeyLabels();
+      // re-show the panel so its own key display updates too
+      detail.show(buildPanelContext(ctx.layer, ctx.node));
+    },
+    getKeyFormat: (ctx) => overrides.resolve(ctx.layer.layer_id, ctx.node.id),
+    getKeyBytes: (ctx) =>
+      "key" in ctx.node.view ? hexToBytesLocal(ctx.node.view.key.hex) : null,
+  });
+
+  const buildPanelContext = (layer: LayerView, node: MerkBinaryNode): PanelContext => {
     const hashes = layerNodeHashes.get(layer.layer_id) ?? [];
     const left = node.left != null ? hashes[node.left] : NULL_HASH;
     const right = node.right != null ? hashes[node.right] : NULL_HASH;
     const recipe = recipeFor(node, left, right);
     const parentMatch = findParentMatch(layer, node, hashes);
-    detail.show({ layer, node, recipe, parentMatch });
+    const ctx: PanelContext = { layer, node, recipe, parentMatch };
+    currentPanelContext = ctx;
+    return ctx;
+  };
+
+  const onNodeClick = (layer: LayerView, node: MerkBinaryNode) => {
+    detail.show(buildPanelContext(layer, node));
+  };
+
+  const onNodeContextMenu = (
+    layer: LayerView,
+    node: MerkBinaryNode,
+    event: MouseEvent,
+  ) => {
+    const hasKey = "key" in node.view;
+    openKeyFormatMenu({
+      x: event.clientX,
+      y: event.clientY,
+      currentFormat: overrides.resolve(layer.layer_id, node.id),
+      hasKey,
+      onPick: (format, scope) => {
+        overrides.set(scope, layer.layer_id, node.id, format);
+        refreshAllKeyLabels();
+        if (currentPanelContext && currentPanelContext.layer === layer && currentPanelContext.node === node) {
+          detail.show(buildPanelContext(layer, node));
+        }
+      },
+    });
   };
 
   const rendered: RenderedLayer[] = [];
   for (const layer of view.layers) {
-    const r = renderLayer(layer, view.layers.length, { onNodeClick });
+    const r = renderLayer(layer, view.layers.length, {
+      onNodeClick,
+      onNodeContextMenu,
+      resolveKeyDisplay: resolveKeyDisplayFor(layer),
+    });
     if (options.collapsed) (r.element as HTMLDetailsElement).open = false;
     layersWrap.appendChild(r.element);
     rendered.push(r);
   }
+
+  const refreshAllKeyLabels = () => {
+    for (const r of rendered) {
+      const layer = view.layers[r.layerId];
+      refreshLayerKeyLabels(r, layer, resolveKeyDisplayFor(layer));
+    }
+  };
 
   const overlay = buildDescentOverlay(view, rendered, host);
   host.appendChild(overlay.element);

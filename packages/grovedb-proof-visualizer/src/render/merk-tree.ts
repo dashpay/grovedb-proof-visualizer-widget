@@ -7,6 +7,9 @@
 import type { MerkBinaryTree, MerkNodeView } from "../types.js";
 import { classifyNode, nodeBriefLabel } from "./format.js";
 
+/** Resolves the display string for a node's key (after format overrides). */
+export type NodeKeyResolver = (nodeId: number) => string | undefined;
+
 export interface MerkLayout {
   /** SVG markup for the tree (a single `<g>` placed at 0,0). */
   svg: string;
@@ -33,7 +36,10 @@ interface Placement {
   right: number | null;
 }
 
-export function layoutMerkTree(tree: MerkBinaryTree): MerkLayout {
+export function layoutMerkTree(
+  tree: MerkBinaryTree,
+  resolveKeyDisplay?: NodeKeyResolver,
+): MerkLayout {
   const placements = new Map<number, Placement>();
   let nextX = 0;
 
@@ -90,7 +96,9 @@ export function layoutMerkTree(tree: MerkBinaryTree): MerkLayout {
   const nodeSvg: string[] = [];
   for (const p of placements.values()) {
     const cls = classifyNode(p.view);
-    const { primary, secondary } = nodeBriefLabel(p.view);
+    const { primary: defaultPrimary, secondary } = nodeBriefLabel(p.view);
+    const overridden = resolveKeyDisplay?.(p.id);
+    const primary = overridden ?? defaultPrimary;
     const x = xOf(p.x);
     const y = yOf(p.y);
     const titleAttr = describeForTooltip(p.view).replace(/"/g, "&quot;");
