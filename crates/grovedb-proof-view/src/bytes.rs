@@ -136,6 +136,22 @@ fn build_v1_layer(
             None,
             Some(opaque(BackingType::CommitmentTree, bytes)),
         ),
+        // New indexed/aggregate proof backings are opaque to this renderer.
+        other => {
+            let bytes: &[u8] = match other {
+                ProofBytes::CountIndexedTree(b)
+                | ProofBytes::IndexedTreeTerminal(b)
+                | ProofBytes::IndexedTreeAxisDescent(b)
+                | ProofBytes::SumBudgetWindow(b) => b,
+                _ => &[],
+            };
+            (
+                BackingType::DenseTree,
+                vec![],
+                None,
+                Some(opaque(BackingType::DenseTree, bytes)),
+            )
+        }
     };
     let mut descents = Vec::new();
     for (key, child) in &layer.lower_layers {
@@ -331,6 +347,9 @@ pub(crate) fn merk_node_to_view(node: &Node) -> Result<MerkNodeView, ParseError>
             right_child_hash: hex::encode(r),
             count: *c,
             sum: *s,
+        },
+        _ => MerkNodeView::Hash {
+            hash: String::new(),
         },
     })
 }

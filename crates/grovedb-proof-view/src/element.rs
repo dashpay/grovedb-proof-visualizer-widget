@@ -127,6 +127,10 @@ fn element_to_view(elem: &Element) -> ElementView {
                 flags: flags_to_hex(flags),
             }
         }
+        _ => ElementView::Unknown {
+            raw_hex: String::new(),
+            error: "unsupported GroveDB element variant".into(),
+        },
     }
 }
 

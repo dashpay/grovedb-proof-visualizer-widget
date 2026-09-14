@@ -16,13 +16,13 @@ repository = "https://github.com/dashpay/proof-visualizer-widget"
 [workspace.dependencies]
 # GroveDB pinned to the same revision the Dash Platform v3.1-dev branch is on.
 # Bump in lockstep with the platform Cargo.lock entry.
-grovedb = { git = "https://github.com/dashpay/grovedb", rev = "e98bab5ff1aa4a5f60f33354646cdf75139a91a4", default-features = false, features = ["verify", "serde"] }
-grovedb-element = { git = "https://github.com/dashpay/grovedb", rev = "e98bab5ff1aa4a5f60f33354646cdf75139a91a4" }
-grovedb-version = { git = "https://github.com/dashpay/grovedb", rev = "e98bab5ff1aa4a5f60f33354646cdf75139a91a4" }
-grovedb-merk = { git = "https://github.com/dashpay/grovedb", rev = "e98bab5ff1aa4a5f60f33354646cdf75139a91a4", default-features = false, features = ["verify"] }
-grovedb-query = { git = "https://github.com/dashpay/grovedb", rev = "e98bab5ff1aa4a5f60f33354646cdf75139a91a4" }
+grovedb = { git = "https://github.com/dashpay/grovedb", rev = "bc3a496805fbaa3b505b1c41d725330945332df9", default-features = false, features = ["verify", "serde"] }
+grovedb-element = { git = "https://github.com/dashpay/grovedb", rev = "bc3a496805fbaa3b505b1c41d725330945332df9" }
+grovedb-version = { git = "https://github.com/dashpay/grovedb", rev = "bc3a496805fbaa3b505b1c41d725330945332df9" }
+grovedb-merk = { git = "https://github.com/dashpay/grovedb", rev = "bc3a496805fbaa3b505b1c41d725330945332df9", default-features = false, features = ["verify"] }
+grovedb-query = { git = "https://github.com/dashpay/grovedb", rev = "bc3a496805fbaa3b505b1c41d725330945332df9" }
 
-bincode = "=2.0.1"
+bincode = { package = "grovedb-bincode", version = "=2.1.0" }
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
