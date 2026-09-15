@@ -5,6 +5,9 @@ pub enum ParseError {
     #[error("bincode decode failed: {0}")]
     Bincode(#[from] bincode::error::DecodeError),
 
+    #[error("unsupported merk-proof node: {0}")]
+    UnsupportedNode(String),
+
     #[error("merk-proof op decode failed: {0}")]
     MerkDecode(String),
 

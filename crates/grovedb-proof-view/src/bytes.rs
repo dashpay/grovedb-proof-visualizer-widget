@@ -348,9 +348,11 @@ pub(crate) fn merk_node_to_view(node: &Node) -> Result<MerkNodeView, ParseError>
             count: *c,
             sum: *s,
         },
-        _ => MerkNodeView::Hash {
-            hash: String::new(),
-        },
+        Node::KVBackwardsReferencesValueHash(_, _, _) => {
+            return Err(ParseError::UnsupportedNode(
+                "KVBackwardsReferencesValueHash".into(),
+            ));
+        }
     })
 }
 

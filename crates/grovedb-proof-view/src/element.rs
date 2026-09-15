@@ -10,7 +10,7 @@ use crate::ir::{DisplayKey, ElementView, HexBytes, ReferenceView};
 /// always want the renderer to have *something* to show.
 pub fn decode_element_view(bytes: &[u8]) -> ElementView {
     match Element::deserialize(bytes, GroveVersion::latest()) {
-        Ok(elem) => element_to_view(&elem),
+        Ok(elem) => element_to_view(&elem, bytes),
         Err(e) => ElementView::Unknown {
             raw_hex: hex::encode(bytes),
             error: e.to_string(),
@@ -18,7 +18,7 @@ pub fn decode_element_view(bytes: &[u8]) -> ElementView {
     }
 }
 
-fn element_to_view(elem: &Element) -> ElementView {
+fn element_to_view(elem: &Element, raw_bytes: &[u8]) -> ElementView {
     match elem {
         Element::Item(value, flags) => ElementView::Item {
             value: hex::encode(value),
@@ -98,13 +98,13 @@ fn element_to_view(elem: &Element) -> ElementView {
             }
         }
         Element::NonCounted(inner) => ElementView::NonCounted {
-            inner: Box::new(element_to_view(inner)),
+            inner: Box::new(element_to_view(inner, raw_bytes)),
         },
         Element::NotSummed(inner) => ElementView::NotSummed {
-            inner: Box::new(element_to_view(inner)),
+            inner: Box::new(element_to_view(inner, raw_bytes)),
         },
         Element::NotCountedOrSummed(inner) => ElementView::NotCountedOrSummed {
-            inner: Box::new(element_to_view(inner)),
+            inner: Box::new(element_to_view(inner, raw_bytes)),
         },
         Element::ReferenceWithSumItem(rp, max_hop, sum, flags) => {
             ElementView::ReferenceWithSumItem {
@@ -128,7 +128,7 @@ fn element_to_view(elem: &Element) -> ElementView {
             }
         }
         _ => ElementView::Unknown {
-            raw_hex: String::new(),
+            raw_hex: hex::encode(raw_bytes),
             error: "unsupported GroveDB element variant".into(),
         },
     }
